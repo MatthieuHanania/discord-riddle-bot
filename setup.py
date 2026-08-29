@@ -28,7 +28,7 @@ def run_setup():
     prefix = prefix_input if prefix_input else default_prefix
 
     # Prompt for Riddle Text
-    default_riddle = "The English detective is half locked up"
+    default_riddle = "Le détective anglais est a moitié enfermé"
     riddle_input = input(f"🧩 Riddle Text [{default_riddle}]: ").strip()
     riddle = riddle_input if riddle_input else default_riddle
 
