@@ -26,9 +26,9 @@ copy .env.example .env
 cp .env.example .env
 ```
 
-Open the newly created `.env` file in a text editor and add your Discord Bot Token:
+Open the newly created `.env` file in a text editor and paste your Discord Bot Token:
 ```env
-DISCORD_TOKEN=votre_token_secret_discord
+DISCORD_TOKEN=your_secret_discord_token
 RIDDLE_TEXT=Le détective anglais est a moitié enfermé
 RIDDLE_ANSWER=lock
 ```
@@ -71,9 +71,6 @@ Your `.env` file is excluded in `.gitignore` and will **never** be pushed to Git
 
 Commands to publish your repository:
 ```bash
-git init
-git add .
-git commit -m "Initial commit - Clean Discord Bot"
 git branch -M main
 git remote add origin https://github.com/your-username/your-repo.git
 git push -u origin main
