@@ -15,21 +15,14 @@ if hasattr(sys.stdout, 'reconfigure'):
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-COMMAND_PREFIX = os.getenv("COMMAND_PREFIX", "/riddlebot")
 
 # Configure Discord gateway intents (Message Content Intent required)
 intents = discord.Intents.default()
 intents.message_content = True
 
-# Primary trigger mechanism: Mentioning @RiddleBot directly in Discord (with fallbacks)
+# Primary trigger mechanism: Mentioning @RiddleBot directly in Discord
 bot = commands.Bot(
-    command_prefix=commands.when_mentioned_or(
-        f"{COMMAND_PREFIX.strip()} ",
-        f"{COMMAND_PREFIX.strip()}",
-        f"{COMMAND_PREFIX.strip().lstrip('/')} ",
-        f"{COMMAND_PREFIX.strip().lstrip('/')}",
-        "!"
-    ),
+    command_prefix=commands.when_mentioned,
     intents=intents
 )
 

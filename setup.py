@@ -22,11 +22,6 @@ def run_setup():
         if not token:
             print("⚠️ Discord Bot Token is required!")
 
-    # Prompt for Command Prefix
-    default_prefix = "/riddlebot"
-    prefix_input = input(f"⚡ Command Prefix [{default_prefix}]: ").strip()
-    prefix = prefix_input if prefix_input else default_prefix
-
     # Prompt for Riddle Text
     default_riddle = "Le détective anglais est a moitié enfermé"
     riddle_input = input(f"🧩 Riddle Text [{default_riddle}]: ").strip()
@@ -40,7 +35,6 @@ def run_setup():
     # Write to .env file
     env_content = f"""# Discord Bot Configuration (DO NOT PUSH TO GITHUB)
 DISCORD_TOKEN={token}
-COMMAND_PREFIX={prefix}
 RIDDLE_TEXT={riddle}
 RIDDLE_ANSWER={answer}
 """
