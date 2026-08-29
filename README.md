@@ -13,12 +13,25 @@ Designed to be **safely shared or pushed to GitHub** without exposing sensitive 
 pip install -r requirements.txt
 ```
 
-### 2. Generate Local Configuration (`.env` File)
-Run the interactive setup script:
-```bash
-python setup.py
+### 2. Configure Environment (`.env` File)
+Copy `.env.example` to `.env`:
+
+**Windows (Command Prompt / PowerShell):**
+```cmd
+copy .env.example .env
 ```
-This script will prompt you for your **Discord Bot Token**, then generate a local `.env` file. This file is **automatically ignored by Git** via `.gitignore`.
+
+**Linux / macOS:**
+```bash
+cp .env.example .env
+```
+
+Open the newly created `.env` file in a text editor and add your Discord Bot Token:
+```env
+DISCORD_TOKEN=votre_token_secret_discord
+RIDDLE_TEXT=Le détective anglais est a moitié enfermé
+RIDDLE_ANSWER=lock
+```
 
 ---
 
@@ -26,7 +39,7 @@ This script will prompt you for your **Discord Bot Token**, then generate a loca
 
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications).
 2. Create an Application, then go to the **Bot** menu.
-3. Retrieve your token via **Reset Token** (to enter when prompted by `python setup.py`).
+3. Retrieve your token via **Reset Token** (to paste into your `.env` file).
 4. ⚠️ **IMPORTANT**: Under **Privileged Gateway Intents**, **ENABLE** `MESSAGE CONTENT INTENT`.
 5. Under **OAuth2 > URL Generator**, select the `bot` scope and permissions `Send Messages`, `Read Message History`, `View Channels`, then use the generated URL to invite the bot to your server.
 
@@ -34,7 +47,7 @@ This script will prompt you for your **Discord Bot Token**, then generate a loca
 
 ## 🚀 Running the Bot
 
-After completing `python setup.py`:
+Run the bot script:
 ```bash
 python bot.py
 ```

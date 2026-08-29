@@ -170,7 +170,7 @@ async def on_message(message: discord.Message):
 
 if __name__ == "__main__":
     if not TOKEN or TOKEN == "YOUR_DISCORD_TOKEN_HERE":
-        print("[-] ERROR: DISCORD_TOKEN is not configured.")
-        print("[!] Please run the setup script first: python setup.py")
+        print("[-] ERROR: DISCORD_TOKEN is not configured in .env file.")
+        print("[!] Please copy .env.example to .env and insert your Discord Bot Token.")
     else:
         bot.run(TOKEN)
