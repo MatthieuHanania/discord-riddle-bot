@@ -29,8 +29,8 @@ cp .env.example .env
 Open the newly created `.env` file in a text editor and paste your Discord Bot Token:
 ```env
 DISCORD_TOKEN=your_secret_discord_token
-RIDDLE_TEXT=Le détective anglais est a moitié enfermé
-RIDDLE_ANSWER=lock
+RIDDLE_TEXT=Bible's central motto: turning the other cheek(s)? (6)
+RIDDLE_ANSWER=bottom
 ```
 
 ---
@@ -68,10 +68,3 @@ The bot is **always active** and triggered directly by tagging `@RiddleBot` in D
 ## 📤 Pushing to GitHub Safely
 
 Your `.env` file is excluded in `.gitignore` and will **never** be pushed to GitHub.
-
-Commands to publish your repository:
-```bash
-git branch -M main
-git remote add origin https://github.com/your-username/your-repo.git
-git push -u origin main
-```
