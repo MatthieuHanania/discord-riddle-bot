@@ -1,0 +1,14 @@
+# Fichiers de configuration contenant des données sensibles (NE PAS PUSHER SUR GITHUB)
+.env
+
+# Fichiers Python temporaires et environnements virtuels
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Fichiers d'éditeurs et IDE
+.idea/
+.vscode/
+*.log
