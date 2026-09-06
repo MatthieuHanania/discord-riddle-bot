@@ -2,7 +2,7 @@ import os
 import sys
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv, set_key, unset_key, find_dotenv
+from dotenv import load_dotenv, set_key, unset_key, find_dotenv, dotenv_values
 
 # Ensure UTF-8 output encoding for Windows terminal compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -45,19 +45,26 @@ ANSWER = os.getenv("RIDDLE_ANSWER", "lock")
 
 def save_targets_to_env():
     """Saves current TARGET_USER_IDS to .env and cleans up legacy single TARGET_USER_ID key."""
+    env_vars = dotenv_values(ENV_FILE)
     if TARGET_USER_IDS:
         ids_str = ",".join(str(uid) for uid in TARGET_USER_IDS)
         set_key(ENV_FILE, "TARGET_USER_IDS", ids_str)
-        try:
-            unset_key(ENV_FILE, "TARGET_USER_ID")
-        except Exception:
-            pass
+        if "TARGET_USER_ID" in env_vars:
+            try:
+                unset_key(ENV_FILE, "TARGET_USER_ID")
+            except Exception:
+                pass
     else:
-        try:
-            unset_key(ENV_FILE, "TARGET_USER_IDS")
-            unset_key(ENV_FILE, "TARGET_USER_ID")
-        except Exception:
-            pass
+        if "TARGET_USER_IDS" in env_vars:
+            try:
+                unset_key(ENV_FILE, "TARGET_USER_IDS")
+            except Exception:
+                pass
+        if "TARGET_USER_ID" in env_vars:
+            try:
+                unset_key(ENV_FILE, "TARGET_USER_ID")
+            except Exception:
+                pass
 
 
 @bot.event
@@ -242,8 +249,8 @@ async def check_answer(ctx, *, user_answer: str = ""):
         await ctx.send("⚠️ Seuls les joueurs ciblés peuvent soumettre une réponse !")
         return
 
-    # Strip optional leading colon or space
-    clean_answer = user_answer.lstrip(":").strip()
+    # Strip optional leading colon, spaces, and spoiler formatting bars ||
+    clean_answer = user_answer.lstrip(":").replace("|", "").strip()
     if not clean_answer:
         await ctx.send(f"⚠️ Veuillez fournir une réponse ! Exemple : `{bot_tag} myanswer bottom`")
         return
