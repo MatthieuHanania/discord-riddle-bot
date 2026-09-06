@@ -59,10 +59,12 @@ python bot.py
 The bot is **always active** and triggered directly by tagging `@RiddleBot` in Discord:
 
 - **`@RiddleBot hello`**: Displays presentation guide embed card.
-- **`@RiddleBot spy @User`**: Sets and saves the target user into local `.env` (persists across bot restarts).
-- **`@RiddleBot resetspy`**: Clears the current target user and removes it from `.env`.
-- **`@RiddleBot riddle`** (or **`@RiddleBot enigme`**): Displays the riddle and pings the target user.
-- **`@RiddleBot myanswer <réponse>`** (or **`@RiddleBot myanswer: <réponse>`**): Submits an answer for the riddle.
+- **`@RiddleBot spy @User`** (or **`@RiddleBot spy add @User`**): Adds a user to the target list (persisted in local `.env`).
+- **`@RiddleBot spy remove @User`**: Removes a user from the target list.
+- **`@RiddleBot spy list`**: Displays all currently targeted users.
+- **`@RiddleBot resetspy`** (or **`@RiddleBot spy reset`**): Clears all targeted users and removes them from `.env`.
+- **`@RiddleBot riddle`** (or **`@RiddleBot enigme`**): Displays the riddle and pings all targeted users.
+- **`@RiddleBot myanswer <réponse>`** (or **`@RiddleBot myanswer: <réponse>`**): Submits an answer for the riddle (restricted to targeted users).
 
 ---
 

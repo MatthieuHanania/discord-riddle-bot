@@ -30,19 +30,44 @@ bot = commands.Bot(
 # Remove default help command to allow custom help alias
 bot.remove_command("help")
 
-# Target user ID (loaded from .env if present, or set dynamically in Discord)
-raw_target_id = os.getenv("TARGET_USER_ID")
-TARGET_USER_ID = int(raw_target_id) if raw_target_id and raw_target_id.isdigit() else None
+# Target user IDs set (loaded from .env if present, or managed dynamically in Discord)
+raw_target_ids = os.getenv("TARGET_USER_IDS") or os.getenv("TARGET_USER_ID", "")
+TARGET_USER_IDS = set()
+if raw_target_ids:
+    for item in raw_target_ids.split(","):
+        item = item.strip()
+        if item.isdigit():
+            TARGET_USER_IDS.add(int(item))
 
 RIDDLE_TEXT = os.getenv("RIDDLE_TEXT", "Le détective anglais est a moitié enfermé")
 ANSWER = os.getenv("RIDDLE_ANSWER", "lock")
+
+
+def save_targets_to_env():
+    """Saves current TARGET_USER_IDS to .env and cleans up legacy single TARGET_USER_ID key."""
+    if TARGET_USER_IDS:
+        ids_str = ",".join(str(uid) for uid in TARGET_USER_IDS)
+        set_key(ENV_FILE, "TARGET_USER_IDS", ids_str)
+        try:
+            unset_key(ENV_FILE, "TARGET_USER_ID")
+        except Exception:
+            pass
+    else:
+        try:
+            unset_key(ENV_FILE, "TARGET_USER_IDS")
+            unset_key(ENV_FILE, "TARGET_USER_ID")
+        except Exception:
+            pass
 
 
 @bot.event
 async def on_ready():
     print(f"[+] Bot successfully connected as {bot.user} (ID: {bot.user.id})")
     print(f"[+] Trigger mode: Mention '@{bot.user.name}' directly in Discord")
-    print(f"[+] Target User ID: {TARGET_USER_ID if TARGET_USER_ID else 'NOT SET (Use @Bot spy @User)'}")
+    if TARGET_USER_IDS:
+        print(f"[+] Target User IDs: {', '.join(str(u) for u in TARGET_USER_IDS)}")
+    else:
+        print("[+] Target User IDs: NONE (Use @Bot spy @User)")
     print("--------------------------------------------------")
 
 
@@ -60,17 +85,19 @@ async def show_hello(ctx):
     )
     
     embed.add_field(
-        name="🎯 1. Cibler un Joueur (Spy / Reset)",
+        name="🎯 1. Cibler des Joueurs (Spy / Reset)",
         value=(
-            f"• `@{bot_name} spy @Membre` : Définit et sauvegarde le joueur ciblé dans `.env`.\n"
-            f"• `@{bot_name} resetspy` : Supprime le joueur ciblé actuel."
+            f"• `@{bot_name} spy @Membre` (ou `spy add @Membre`) : Ajoute un joueur ciblée dans `.env`.\n"
+            f"• `@{bot_name} spy remove @Membre` : Retire un joueur de la liste ciblée.\n"
+            f"• `@{bot_name} spy list` : Affiche la liste des joueurs ciblés.\n"
+            f"• `@{bot_name} resetspy` (ou `spy reset`) : Supprime tous les joueurs ciblés."
         ),
         inline=False
     )
     
     embed.add_field(
         name="🧩 2. Poser l'Énigme",
-        value=f"• `@{bot_name} riddle` (ou `enigme`) : Affiche l'énigme et mentionne le joueur ciblé.",
+        value=f"• `@{bot_name} riddle` (ou `enigme`) : Affiche l'énigme et mentionne les joueurs ciblés.",
         inline=False
     )
     
@@ -90,11 +117,12 @@ async def show_hello(ctx):
 
 @bot.command(name="riddle", aliases=["enigme"])
 async def show_riddle(ctx):
-    """Displays the riddle and mentions the targeted user if configured."""
+    """Displays the riddle and mentions all targeted users if configured."""
     bot_tag = f"@{bot.user.name}"
-    if TARGET_USER_ID:
+    if TARGET_USER_IDS:
+        mentions = " ".join(f"<@{uid}>" for uid in TARGET_USER_IDS)
         await ctx.send(
-            f"✨ <@{TARGET_USER_ID}> trouve la solution à l'énigme suivante :\n"
+            f"✨ {mentions} trouvez la solution à l'énigme suivante :\n"
             f"> 🧩 **\"{RIDDLE_TEXT}\"**\n\n"
             f"💡 *Pour répondre, taggue-moi et écris :* `{bot_tag} myanswer <ta_réponse>` *(ex: `{bot_tag} myanswer bottom`)*"
         )
@@ -102,50 +130,116 @@ async def show_riddle(ctx):
         await ctx.send(
             f"🧩 **Énigme :**\n"
             f"> **\"{RIDDLE_TEXT}\"**\n\n"
-            f"⚠️ *(Aucun joueur n'est ciblé. Taggez-moi avec `{bot_tag} spy @Membre` pour en choisir un !)*"
+            f"⚠️ *(Aucun joueur n'est ciblé. Taggez-moi avec `{bot_tag} spy @Membre` pour en ajouter !)*"
         )
 
 
+async def _show_spy_list(ctx):
+    bot_tag = f"@{bot.user.name}"
+    if not TARGET_USER_IDS:
+        await ctx.send(f"ℹ️ Aucun joueur n'est ciblé pour le moment. Taggez-moi avec `{bot_tag} spy @Membre` !")
+        return
+    mentions = " ".join(f"<@{uid}>" for uid in TARGET_USER_IDS)
+    await ctx.send(f"🎯 **Joueurs ciblés actuels ({len(TARGET_USER_IDS)}) :** {mentions}")
+
+
 @bot.command(name="spy", aliases=["target"])
-async def set_spy_target(ctx, user: discord.User):
-    """Sets the target user to monitor using @mention or User ID and saves it in .env."""
-    global TARGET_USER_ID
-    TARGET_USER_ID = user.id
-    try:
-        set_key(ENV_FILE, "TARGET_USER_ID", str(user.id))
-        await ctx.send(f"🎯 Le joueur ciblé est désormais {user.mention} (ID: `{user.id}`) et a bien été sauvegardé !")
-    except Exception as e:
-        print(f"[!] Warning: Could not save TARGET_USER_ID to .env: {e}")
-        await ctx.send(f"🎯 Le joueur ciblé est désormais {user.mention} (ID: `{user.id}`) !")
+async def spy_command(ctx, action_or_user: str = None, user: discord.User = None):
+    """
+    Manages target users (spy list).
+    Usage:
+      @Bot spy @User
+      @Bot spy add @User
+      @Bot spy remove @User
+      @Bot spy list
+      @Bot spy reset
+    """
+    global TARGET_USER_IDS
+    bot_tag = f"@{bot.user.name}"
+
+    if action_or_user is None:
+        await _show_spy_list(ctx)
+        return
+
+    action_lower = action_or_user.lower()
+
+    if action_lower in ["list", "show"]:
+        await _show_spy_list(ctx)
+        return
+
+    if action_lower in ["reset", "clear"]:
+        await reset_spy_target(ctx)
+        return
+
+    if action_lower in ["add"]:
+        if user is None:
+            await ctx.send(f"⚠️ Veuillez mentionner un membre à ajouter ! Exemple : `{bot_tag} spy add @Membre`")
+            return
+        target_to_add = user
+    elif action_lower in ["remove", "rm", "del", "delete"]:
+        if user is None:
+            await ctx.send(f"⚠️ Veuillez mentionner un membre à retirer ! Exemple : `{bot_tag} spy remove @Membre`")
+            return
+        if user.id not in TARGET_USER_IDS:
+            await ctx.send(f"⚠️ {user.mention} n'était pas dans la liste des membres ciblés.")
+            return
+        TARGET_USER_IDS.remove(user.id)
+        save_targets_to_env()
+        await ctx.send(f"🗑️ {user.mention} a été retiré de la liste des joueurs ciblés !")
+        return
+    else:
+        # Try to parse action_or_user directly as a User mention / ID
+        target_user = None
+        try:
+            target_user = await commands.UserConverter().convert(ctx, action_or_user)
+        except commands.BadArgument:
+            pass
+
+        if target_user:
+            target_to_add = target_user
+        else:
+            await ctx.send(
+                f"⚠️ Commande spy invalide.\n"
+                f"💡 Utilisations possibles :\n"
+                f"• `{bot_tag} spy @Membre` ou `{bot_tag} spy add @Membre`\n"
+                f"• `{bot_tag} spy remove @Membre`\n"
+                f"• `{bot_tag} spy list`\n"
+                f"• `{bot_tag} spy reset`"
+            )
+            return
+
+    if target_to_add.id in TARGET_USER_IDS:
+        await ctx.send(f"ℹ️ {target_to_add.mention} est déjà dans la liste des joueurs ciblés !")
+        return
+
+    TARGET_USER_IDS.add(target_to_add.id)
+    save_targets_to_env()
+    await ctx.send(f"🎯 {target_to_add.mention} (ID: `{target_to_add.id}`) a été ajouté aux joueurs ciblés et sauvegardé !")
 
 
 @bot.command(name="resetspy", aliases=["reset_spy", "unspy", "clearspy"])
 async def reset_spy_target(ctx):
-    """Clears the spy target user and removes it from .env."""
-    global TARGET_USER_ID
-    if TARGET_USER_ID is None:
+    """Clears all spy target users and removes them from .env."""
+    global TARGET_USER_IDS
+    if not TARGET_USER_IDS:
         await ctx.send("ℹ️ Aucun joueur n'est ciblé actuellement.")
         return
 
-    TARGET_USER_ID = None
-    try:
-        unset_key(ENV_FILE, "TARGET_USER_ID")
-        await ctx.send("🔄 Le joueur ciblé a été réinitialisé et supprimé de la configuration !")
-    except Exception as e:
-        print(f"[!] Warning: Could not unset TARGET_USER_ID in .env: {e}")
-        await ctx.send("🔄 Le joueur ciblé a été réinitialisé !")
+    TARGET_USER_IDS.clear()
+    save_targets_to_env()
+    await ctx.send("🔄 Tous les joueurs ciblés ont été réinitialisés et supprimés de la configuration !")
 
 
 @bot.command(name="myanswer", aliases=["answer", "reponse", "myanswer:"])
 async def check_answer(ctx, *, user_answer: str = ""):
     """Checks the user's submitted answer for the riddle."""
     bot_tag = f"@{bot.user.name}"
-    if not TARGET_USER_ID:
+    if not TARGET_USER_IDS:
         await ctx.send(f"⚠️ Aucun joueur n'est ciblé pour le moment. Taggez-moi avec `{bot_tag} spy @Membre` !")
         return
 
-    if ctx.author.id != TARGET_USER_ID:
-        await ctx.send("⚠️ Seul le joueur ciblé peut soumettre une réponse !")
+    if ctx.author.id not in TARGET_USER_IDS:
+        await ctx.send("⚠️ Seuls les joueurs ciblés peuvent soumettre une réponse !")
         return
 
     # Strip optional leading colon or space
