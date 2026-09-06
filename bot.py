@@ -256,7 +256,20 @@ async def check_answer(ctx, *, user_answer: str = ""):
         return
 
     if ANSWER.lower() in clean_answer.lower():
-        await ctx.send("bravo tu as trouvé")
+        TARGET_USER_IDS.remove(ctx.author.id)
+        save_targets_to_env()
+
+        if TARGET_USER_IDS:
+            remaining_mentions = " ".join(f"<@{uid}>" for uid in TARGET_USER_IDS)
+            await ctx.send(
+                f"bravo tu as trouvé !\n"
+                f"👥 Joueurs restants : {remaining_mentions}"
+            )
+        else:
+            await ctx.send(
+                f"bravo tu as trouvé !\n"
+                f"🎉 Félicitations, tous les joueurs ciblés ont trouvé la réponse !"
+            )
     else:
         await ctx.send("cherche encore")
 
