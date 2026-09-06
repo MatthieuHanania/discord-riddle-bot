@@ -2,7 +2,7 @@ import os
 import sys
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv
+from dotenv import load_dotenv, set_key, unset_key, find_dotenv
 
 # Ensure UTF-8 output encoding for Windows terminal compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -12,7 +12,8 @@ if hasattr(sys.stdout, 'reconfigure'):
         pass
 
 # Load environment variables from local .env file
-load_dotenv()
+ENV_FILE = find_dotenv() or ".env"
+load_dotenv(ENV_FILE)
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -29,8 +30,9 @@ bot = commands.Bot(
 # Remove default help command to allow custom help alias
 bot.remove_command("help")
 
-# Target user ID (set dynamically in Discord via @RiddleBot spy @User)
-TARGET_USER_ID = None
+# Target user ID (loaded from .env if present, or set dynamically in Discord)
+raw_target_id = os.getenv("TARGET_USER_ID")
+TARGET_USER_ID = int(raw_target_id) if raw_target_id and raw_target_id.isdigit() else None
 
 RIDDLE_TEXT = os.getenv("RIDDLE_TEXT", "Le détective anglais est a moitié enfermé")
 ANSWER = os.getenv("RIDDLE_ANSWER", "lock")
@@ -58,8 +60,11 @@ async def show_hello(ctx):
     )
     
     embed.add_field(
-        name="🎯 1. Cibler un Joueur (Spy)",
-        value=f"• `@{bot_name} spy @Membre` : Définit la personne ciblée par l'énigme.",
+        name="🎯 1. Cibler un Joueur (Spy / Reset)",
+        value=(
+            f"• `@{bot_name} spy @Membre` : Définit et sauvegarde le joueur ciblé dans `.env`.\n"
+            f"• `@{bot_name} resetspy` : Supprime le joueur ciblé actuel."
+        ),
         inline=False
     )
     
@@ -103,10 +108,32 @@ async def show_riddle(ctx):
 
 @bot.command(name="spy", aliases=["target"])
 async def set_spy_target(ctx, user: discord.User):
-    """Sets the target user to monitor using @mention or User ID."""
+    """Sets the target user to monitor using @mention or User ID and saves it in .env."""
     global TARGET_USER_ID
     TARGET_USER_ID = user.id
-    await ctx.send(f"🎯 Le joueur ciblé est désormais {user.mention} (ID: `{user.id}`) !")
+    try:
+        set_key(ENV_FILE, "TARGET_USER_ID", str(user.id))
+        await ctx.send(f"🎯 Le joueur ciblé est désormais {user.mention} (ID: `{user.id}`) et a bien été sauvegardé !")
+    except Exception as e:
+        print(f"[!] Warning: Could not save TARGET_USER_ID to .env: {e}")
+        await ctx.send(f"🎯 Le joueur ciblé est désormais {user.mention} (ID: `{user.id}`) !")
+
+
+@bot.command(name="resetspy", aliases=["reset_spy", "unspy", "clearspy"])
+async def reset_spy_target(ctx):
+    """Clears the spy target user and removes it from .env."""
+    global TARGET_USER_ID
+    if TARGET_USER_ID is None:
+        await ctx.send("ℹ️ Aucun joueur n'est ciblé actuellement.")
+        return
+
+    TARGET_USER_ID = None
+    try:
+        unset_key(ENV_FILE, "TARGET_USER_ID")
+        await ctx.send("🔄 Le joueur ciblé a été réinitialisé et supprimé de la configuration !")
+    except Exception as e:
+        print(f"[!] Warning: Could not unset TARGET_USER_ID in .env: {e}")
+        await ctx.send("🔄 Le joueur ciblé a été réinitialisé !")
 
 
 @bot.command(name="myanswer", aliases=["answer", "reponse", "myanswer:"])
