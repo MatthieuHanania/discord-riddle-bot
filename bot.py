@@ -341,41 +341,37 @@ async def on_command_error(ctx: commands.Context, error: commands.CommandError):
         print(f"[!] Command error: {error}")
 
 
+@bot.before_invoke
+async def auto_delete_command_message(ctx: commands.Context):
+    """Automatically deletes the command invocation message except for 'myanswer'."""
+    if ctx.command and ctx.command.name not in ["myanswer"]:
+        try:
+            await ctx.message.delete()
+        except (discord.Forbidden, discord.NotFound):
+            pass
+        except Exception as e:
+            print(f"[!] Warning: Could not delete trigger message: {e}")
+
+
 @bot.event
 async def on_message(message: discord.Message):
     # Ignore messages sent by bots (including this bot)
     if message.author.bot:
         return
 
-    # Check if the message mentions the bot
-    if bot.user in message.mentions:
-        words = message.content.strip().split()
-
-        # Check if the command is myanswer (or answer / reponse / myanswer:)
-        is_myanswer = False
-        if len(words) >= 2:
-            second_word = words[1].lower().lstrip(":")
-            if any(second_word.startswith(kw) for kw in ["myanswer", "answer", "reponse"]):
-                is_myanswer = True
-
-        # Delete trigger message for all bot tags/commands except myanswer
-        if not is_myanswer:
-            try:
-                await message.delete()
-            except (discord.Forbidden, discord.NotFound):
-                pass
-            except Exception as e:
-                print(f"[!] Warning: Could not delete message: {e}")
-
-        # If it's ONLY a mention of the bot (@RiddleBot alone with no subcommand)
-        if len(words) <= 1:
-            await message.channel.send(
-                f"👋 Bonjour ! Taggez-moi avec `@{bot.user.name} hello` pour afficher le guide complet du bot !"
-            )
-            return
-
-    # Process Discord bot commands
+    # Process Discord bot commands first
     await bot.process_commands(message)
+
+    # Check if message is just a direct mention of the bot alone (e.g. @RiddleBot)
+    if bot.user in message.mentions and len(message.content.strip().split()) <= 1:
+        try:
+            await message.delete()
+        except (discord.Forbidden, discord.NotFound):
+            pass
+        await message.channel.send(
+            f"👋 Bonjour ! Taggez-moi avec `@{bot.user.name} hello` pour afficher le guide complet du bot !"
+        )
+        return
 
 
 if __name__ == "__main__":
