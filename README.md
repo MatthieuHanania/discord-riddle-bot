@@ -68,6 +68,18 @@ The bot is **always active** and triggered directly by tagging `@RiddleBot` in D
 
 ---
 
+## ☁️ Hosting 24/7 on Discloud
+
+This repository includes a `discloud.config` file configured for [Discloud](https://discloudbot.com/):
+
+1. Login to **Discloud App / Dashboard** with your Discord account.
+2. Link your GitHub account under Settings / Apps.
+3. Import your `MatthieuHanania/discord-riddle-bot` GitHub repository.
+4. Set your Environment Variables (`DISCORD_TOKEN`, `RIDDLE_TEXT`, etc.) in the Discloud Dashboard **Vars** section.
+5. Click **Commit / Deploy**. Every `git push` to `main` will automatically deploy your updated bot!
+
+---
+
 ## 📤 Pushing to GitHub Safely
 
 Your `.env` file is excluded in `.gitignore` and will **never** be pushed to GitHub.
