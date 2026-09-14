@@ -1,4 +1,3 @@
-import asyncio
 import json
 import os
 import sys
@@ -342,18 +341,6 @@ async def on_command_error(ctx: commands.Context, error: commands.CommandError):
         print(f"[!] Command error: {error}")
 
 
-async def safe_delete_message(message: discord.Message, delay: float = 0.5):
-    """Deletes a message after a brief delay to prevent Discord UI optimistic ghosting."""
-    try:
-        if delay > 0:
-            await asyncio.sleep(delay)
-        await message.delete()
-    except (discord.Forbidden, discord.NotFound):
-        pass
-    except Exception as e:
-        print(f"[!] Warning: Could not delete message: {e}")
-
-
 @bot.event
 async def on_message(message: discord.Message):
     # Ignore messages sent by bots (including this bot)
@@ -371,9 +358,14 @@ async def on_message(message: discord.Message):
             if any(second_word.startswith(kw) for kw in ["myanswer", "answer", "reponse"]):
                 is_myanswer = True
 
-        # Delete trigger message for all bot tags/commands except myanswer (after 0.5s delay to prevent ghosting)
+        # Delete trigger message for all bot tags/commands except myanswer
         if not is_myanswer:
-            asyncio.create_task(safe_delete_message(message, delay=0.5))
+            try:
+                await message.delete()
+            except (discord.Forbidden, discord.NotFound):
+                pass
+            except Exception as e:
+                print(f"[!] Warning: Could not delete message: {e}")
 
         # If it's ONLY a mention of the bot (@RiddleBot alone with no subcommand)
         if len(words) <= 1:
