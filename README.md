@@ -13,7 +13,7 @@ Designed to be **safely shared or pushed to GitHub** without exposing sensitive 
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment (`.env` File)
+### 2. Configure Secret Credentials (`.env` File)
 Copy `.env.example` to `.env`:
 
 **Windows (Command Prompt / PowerShell):**
@@ -29,8 +29,16 @@ cp .env.example .env
 Open the newly created `.env` file in a text editor and paste your Discord Bot Token:
 ```env
 DISCORD_TOKEN=your_secret_discord_token
-RIDDLE_TEXT=Bible's central motto: turning the other cheek(s)? (6)
-RIDDLE_ANSWER=bottom
+```
+
+### 3. Riddle & Target User Configuration (`data.json` File)
+Application state (riddle text, answer, and target user IDs) is stored in `data.json`:
+```json
+{
+    "riddle_text": "Le détective anglais est a moitié enfermé",
+    "riddle_answer": "lock",
+    "target_user_ids": []
+}
 ```
 
 ---
@@ -59,10 +67,10 @@ python bot.py
 The bot is **always active** and triggered directly by tagging `@RiddleBot` in Discord:
 
 - **`@RiddleBot hello`**: Displays presentation guide embed card.
-- **`@RiddleBot spy @User`** (or **`@RiddleBot spy add @User`**): Adds a user to the target list (persisted in local `.env`).
+- **`@RiddleBot spy @User`** (or **`@RiddleBot spy add @User`**): Adds a user to the target list (persisted in `data.json`).
 - **`@RiddleBot spy remove @User`**: Removes a user from the target list.
 - **`@RiddleBot spy list`**: Displays all currently targeted users.
-- **`@RiddleBot resetspy`** (or **`@RiddleBot spy reset`**): Clears all targeted users and removes them from `.env`.
+- **`@RiddleBot resetspy`** (or **`@RiddleBot spy reset`**): Clears all targeted users from `data.json`.
 - **`@RiddleBot riddle`** (or **`@RiddleBot enigme`**): Displays the riddle and pings all targeted users.
 - **`@RiddleBot myanswer <réponse>`** (or **`@RiddleBot myanswer: <réponse>`**): Submits an answer for the riddle (restricted to targeted users).
 

@@ -1,8 +1,9 @@
+import json
 import os
 import sys
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv, set_key, unset_key, find_dotenv, dotenv_values
+from dotenv import load_dotenv
 
 # Ensure UTF-8 output encoding for Windows terminal compatibility
 if hasattr(sys.stdout, 'reconfigure'):
@@ -11,11 +12,57 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-# Load environment variables from local .env file
-ENV_FILE = find_dotenv() or ".env"
-load_dotenv(ENV_FILE)
-
+# Load secret environment variables from local .env file
+load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
+
+# Data file for non-secret configuration and runtime state (riddle text, answer, target user IDs)
+DATA_FILE = "data.json"
+
+DEFAULT_DATA = {
+    "riddle_text": os.getenv("RIDDLE_TEXT", "Le détective anglais est a moitié enfermé"),
+    "riddle_answer": os.getenv("RIDDLE_ANSWER", "lock"),
+    "target_user_ids": []
+}
+
+
+def load_data():
+    """Loads non-secret riddle configuration and target user IDs from data.json."""
+    if not os.path.exists(DATA_FILE):
+        save_data(DEFAULT_DATA)
+        return DEFAULT_DATA.copy()
+    try:
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            for k, v in DEFAULT_DATA.items():
+                data.setdefault(k, v)
+            return data
+    except Exception as e:
+        print(f"[!] Warning: Could not read {DATA_FILE}: {e}")
+        return DEFAULT_DATA.copy()
+
+
+def save_data(data):
+    """Saves non-secret data to data.json."""
+    try:
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"[!] Warning: Could not save {DATA_FILE}: {e}")
+
+
+# Initialize application data
+bot_data = load_data()
+RIDDLE_TEXT = bot_data["riddle_text"]
+ANSWER = bot_data["riddle_answer"]
+TARGET_USER_IDS = set(bot_data["target_user_ids"])
+
+
+def save_targets():
+    """Persists TARGET_USER_IDS list into data.json."""
+    bot_data["target_user_ids"] = list(TARGET_USER_IDS)
+    save_data(bot_data)
+
 
 # Configure Discord gateway intents (Message Content Intent required)
 intents = discord.Intents.default()
@@ -29,42 +76,6 @@ bot = commands.Bot(
 
 # Remove default help command to allow custom help alias
 bot.remove_command("help")
-
-# Target user IDs set (loaded from .env if present, or managed dynamically in Discord)
-raw_target_ids = os.getenv("TARGET_USER_IDS") or os.getenv("TARGET_USER_ID", "")
-TARGET_USER_IDS = set()
-if raw_target_ids:
-    for item in raw_target_ids.split(","):
-        item = item.strip()
-        if item.isdigit():
-            TARGET_USER_IDS.add(int(item))
-
-RIDDLE_TEXT = os.getenv("RIDDLE_TEXT", "Le détective anglais est a moitié enfermé")
-ANSWER = os.getenv("RIDDLE_ANSWER", "lock")
-
-
-def save_targets_to_env():
-    """Saves current TARGET_USER_IDS to .env and cleans up legacy single TARGET_USER_ID key."""
-    env_vars = dotenv_values(ENV_FILE)
-    if TARGET_USER_IDS:
-        ids_str = ",".join(str(uid) for uid in TARGET_USER_IDS)
-        set_key(ENV_FILE, "TARGET_USER_IDS", ids_str)
-        if "TARGET_USER_ID" in env_vars:
-            try:
-                unset_key(ENV_FILE, "TARGET_USER_ID")
-            except Exception:
-                pass
-    else:
-        if "TARGET_USER_IDS" in env_vars:
-            try:
-                unset_key(ENV_FILE, "TARGET_USER_IDS")
-            except Exception:
-                pass
-        if "TARGET_USER_ID" in env_vars:
-            try:
-                unset_key(ENV_FILE, "TARGET_USER_ID")
-            except Exception:
-                pass
 
 
 @bot.event
@@ -94,7 +105,7 @@ async def show_hello(ctx):
     embed.add_field(
         name="🎯 1. Cibler des Joueurs (Spy / Reset)",
         value=(
-            f"• `@{bot_name} spy @Membre` (ou `spy add @Membre`) : Ajoute un joueur ciblée dans `.env`.\n"
+            f"• `@{bot_name} spy @Membre` (ou `spy add @Membre`) : Ajoute un joueur ciblé dans `data.json`.\n"
             f"• `@{bot_name} spy remove @Membre` : Retire un joueur de la liste ciblée.\n"
             f"• `@{bot_name} spy list` : Affiche la liste des joueurs ciblés.\n"
             f"• `@{bot_name} resetspy` (ou `spy reset`) : Supprime tous les joueurs ciblés."
@@ -191,7 +202,7 @@ async def spy_command(ctx, action_or_user: str = None, user: discord.User = None
             await ctx.send(f"⚠️ {user.mention} n'était pas dans la liste des membres ciblés.")
             return
         TARGET_USER_IDS.remove(user.id)
-        save_targets_to_env()
+        save_targets()
         await ctx.send(f"🗑️ {user.mention} a été retiré de la liste des joueurs ciblés !")
         return
     else:
@@ -220,20 +231,20 @@ async def spy_command(ctx, action_or_user: str = None, user: discord.User = None
         return
 
     TARGET_USER_IDS.add(target_to_add.id)
-    save_targets_to_env()
+    save_targets()
     await ctx.send(f"🎯 {target_to_add.mention} (ID: `{target_to_add.id}`) a été ajouté aux joueurs ciblés et sauvegardé !")
 
 
 @bot.command(name="resetspy", aliases=["reset_spy", "unspy", "clearspy"])
 async def reset_spy_target(ctx):
-    """Clears all spy target users and removes them from .env."""
+    """Clears all spy target users and removes them from data.json."""
     global TARGET_USER_IDS
     if not TARGET_USER_IDS:
         await ctx.send("ℹ️ Aucun joueur n'est ciblé actuellement.")
         return
 
     TARGET_USER_IDS.clear()
-    save_targets_to_env()
+    save_targets()
     await ctx.send("🔄 Tous les joueurs ciblés ont été réinitialisés et supprimés de la configuration !")
 
 
@@ -257,7 +268,7 @@ async def check_answer(ctx, *, user_answer: str = ""):
 
     if ANSWER.lower() in clean_answer.lower():
         TARGET_USER_IDS.remove(ctx.author.id)
-        save_targets_to_env()
+        save_targets()
 
         if TARGET_USER_IDS:
             remaining_mentions = " ".join(f"<@{uid}>" for uid in TARGET_USER_IDS)
