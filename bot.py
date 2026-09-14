@@ -341,6 +341,18 @@ async def on_command_error(ctx: commands.Context, error: commands.CommandError):
         print(f"[!] Command error: {error}")
 
 
+@bot.before_invoke
+async def auto_delete_command_message(ctx: commands.Context):
+    """Automatically deletes the command invocation message except for 'myanswer'."""
+    if ctx.command and ctx.command.name not in ["myanswer"]:
+        try:
+            await ctx.message.delete()
+        except (discord.Forbidden, discord.NotFound):
+            pass
+        except Exception as e:
+            print(f"[!] Warning: Could not delete trigger message: {e}")
+
+
 @bot.event
 async def on_message(message: discord.Message):
     # Ignore messages sent by bots (including this bot)
@@ -352,6 +364,10 @@ async def on_message(message: discord.Message):
 
     # Check if message is just a direct mention of the bot alone (e.g. @RiddleBot)
     if bot.user in message.mentions and len(message.content.strip().split()) <= 1:
+        try:
+            await message.delete()
+        except (discord.Forbidden, discord.NotFound):
+            pass
         await message.channel.send(
             f"👋 Bonjour ! Taggez-moi avec `@{bot.user.name} hello` pour afficher le guide complet du bot !"
         )
