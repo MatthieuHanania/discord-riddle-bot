@@ -73,6 +73,7 @@ The bot is **always active** and triggered directly by tagging `@RiddleBot` in D
 - **`@RiddleBot resetspy`** (or **`@RiddleBot spy reset`**): Clears all targeted users from `data.json`.
 - **`@RiddleBot riddle`** (or **`@RiddleBot enigme`**): Displays the riddle and pings all targeted users.
 - **`@RiddleBot myanswer <réponse>`** (or **`@RiddleBot myanswer: <réponse>`**): Submits an answer for the riddle (restricted to targeted users).
+- **`@RiddleBot roast @User`** (or **`@RiddleBot clash @User`**): Sends a random French roast/punchline targeting a friend.
 
 ---
 

@@ -89,6 +89,25 @@ async def on_ready():
     print("--------------------------------------------------")
 
 
+# Load roasts list from roasts.json
+ROASTS_FILE = "roasts.json"
+ROASTS = []
+if os.path.exists(ROASTS_FILE):
+    try:
+        with open(ROASTS_FILE, "r", encoding="utf-8") as f:
+            ROASTS = json.load(f)
+    except Exception as e:
+        print(f"[!] Warning: Could not read {ROASTS_FILE}: {e}")
+
+if not ROASTS:
+    ROASTS = [
+        "Ton niveau est tellement bas que même la Wi-Fi du voisin ne veut pas te capter.",
+        "T'as le charisme d'un PNJ dans un jeu des années 90.",
+        "Si l'incompétence était une discipline olympique, tu serais porte-drapeau.",
+        "Booba t'aurait éteint avec un seul freestyle de 15 secondes."
+    ]
+
+
 @bot.command(name="hello", aliases=["help", "info", "guide", "hi"])
 async def show_hello(ctx):
     """Presents the bot and explains how to use all commands."""
@@ -126,6 +145,12 @@ async def show_hello(ctx):
             "• Si c'est correct : le bot répond `bravo tu as trouvé`.\n"
             "• Sinon : le bot répond `cherche encore`."
         ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="🔥 4. Roaster quelqu'un",
+        value=f"• `@{bot_name} roast @Membre` : Envoie une punchline / clash aléatoire au membre ciblé.",
         inline=False
     )
     
@@ -283,6 +308,19 @@ async def check_answer(ctx, *, user_answer: str = ""):
             )
     else:
         await ctx.send("cherche encore")
+
+
+@bot.command(name="roast", aliases=["clash", "diss"])
+async def roast_user(ctx, user: discord.User = None):
+    """Sends a random roast / punchline targeting a mentioned user."""
+    bot_tag = f"@{bot.user.name}"
+    if user is None:
+        await ctx.send(f"🔥 Taggez un ami à roaster ! Exemple : `{bot_tag} roast @Membre`")
+        return
+
+    import random
+    roast_text = random.choice(ROASTS)
+    await ctx.send(f"🔥 {user.mention} {roast_text}")
 
 
 @bot.event
