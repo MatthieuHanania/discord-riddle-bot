@@ -10,7 +10,7 @@ Designed to be **safely shared or pushed to GitHub** without exposing sensitive 
 
 ### 1. Install Dependencies
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 ### 2. Configure Secret Credentials (`.env` File)
@@ -55,7 +55,12 @@ Application state (riddle text, answer, and target user IDs) is stored in `data.
 
 ## 🚀 Running the Bot
 
-Run the bot script:
+Run the bot with `uv`:
+```bash
+uv run bot.py
+```
+
+*(Or within an activated virtual environment)*:
 ```bash
 python bot.py
 ```
@@ -74,18 +79,6 @@ The bot is **always active** and triggered directly by tagging `@RiddleBot` in D
 - **`@RiddleBot riddle`** (or **`@RiddleBot enigme`**): Displays the riddle and pings all targeted users.
 - **`@RiddleBot myanswer <réponse>`** (or **`@RiddleBot myanswer: <réponse>`**): Submits an answer for the riddle (restricted to targeted users).
 - **`@RiddleBot roast @User`** (or **`@RiddleBot clash @User`**): Sends a random French roast/punchline targeting a friend.
-
----
-
-## ☁️ Hosting 24/7 on Discloud
-
-This repository includes a `discloud.config` file configured for [Discloud](https://discloudbot.com/):
-
-1. Login to **Discloud App / Dashboard** with your Discord account.
-2. Link your GitHub account under Settings / Apps.
-3. Import your `MatthieuHanania/discord-riddle-bot` GitHub repository.
-4. Set your Environment Variables (`DISCORD_TOKEN`, `RIDDLE_TEXT`, etc.) in the Discloud Dashboard **Vars** section.
-5. Click **Commit / Deploy**. Every `git push` to `main` will automatically deploy your updated bot!
 
 ---
 
