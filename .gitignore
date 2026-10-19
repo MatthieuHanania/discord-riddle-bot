@@ -12,3 +12,7 @@ env/
 .idea/
 .vscode/
 *.log
+
+# Données d'état runtime des serveurs
+data/guilds/
+*.tmp
