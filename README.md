@@ -1,55 +1,104 @@
-# Discord Bot - Riddle & Target User Detector
+# 🧩 RiddleBot — Interactive Discord Riddle & Game Bot
 
-A Python Discord Bot (`discord.py`) featuring direct tag/mention commands (`@RiddleBot`), target user monitoring, and interactive riddle answering.
+A modern, scalable Discord bot built with **Python 3.12+**, **`discord.py` 2.x**, and managed with **`uv`**.  
+Features **Slash Commands (`/`)**, **Interactive Buttons & Modal pop-ups** (anti-cheat answer submissions), **guild-isolated state persistence**, and **modular Cogs architecture**.
 
-Designed to be **safely shared or pushed to GitHub** without exposing sensitive credentials or tokens.
+---
+
+## ✨ Features
+
+- 🧩 **Interactive Riddles (`/riddle`):**
+  - Sends a styled card with the active riddle and tags the targeted players.
+  - **"🔑 Proposer une réponse" Button:** Opens a private Discord Modal window.
+  - **Anti-Cheat / Anti-Spoiler:** Guesses submitted through the modal are validated privately with ephemeral responses so no one can copy or leak answers!
+  - **Dynamic Configuration (`/riddle_set`):** Change the riddle text and secret answer directly via Slash command without touching JSON files or rebooting!
+- 🎯 **Target Player Management (`/spy`):**
+  - Add, remove, list, or clear targeted players per server (`/spy add`, `/spy remove`, `/spy list`, `/spy clear`).
+  - Isolated per server: each Discord server has its own riddle and target list!
+- 🔥 **Fun & Roasts (`/roast`):**
+  - Roasts a friend with a curated collection of punchlines loaded asynchronously from `data/roasts.json`.
+- ⚡ **Hybrid Commands & Mention Support:**
+  - Works with native Slash Commands (`/riddle`, `/help`, etc.).
+  - Still supports mention triggering (`@RiddleBot riddle`) for backwards compatibility.
+- 🏗️ **Clean Architecture (GitHub Best Practices):**
+  - Subclassed `commands.Bot` with asynchronous `setup_hook`.
+  - Feature modularity using **Cogs** (`cogs/riddle.py`, `cogs/spy.py`, `cogs/roast.py`, `cogs/general.py`).
+  - Dedicated non-blocking **Services** (`StorageService`, `RoastService`).
+  - Structured console logging with timestamps and log levels.
+
+---
+
+## 📁 Project Structure
+
+```text
+BotDiscord/
+├── pyproject.toml              # UV dependencies & project metadata
+├── uv.lock                     # Deterministic dependency lockfile
+├── .env.example                # Environment variables template
+├── .env                        # Local secrets (DISCORD_TOKEN) - ignored by git
+├── .gitignore
+├── README.md
+│
+├── src/
+│   ├── config.py               # Typed configuration & env loader
+│   ├── bot.py                  # Custom RiddleBot subclass (setup_hook & tree sync)
+│   │
+│   ├── services/               # Asynchronous service layer
+│   │   ├── storage.py          # Guild-isolated async storage
+│   │   └── roast_service.py    # Punchlines & roasts manager
+│   │
+│   ├── ui/                     # Discord UI components
+│   │   └── riddle_views.py     # Persistent Buttons & Modal popups
+│   │
+│   └── cogs/                   # Modular feature extensions
+│       ├── general.py          # /help, /ping, bot status
+│       ├── riddle.py           # /riddle, /answer, /riddle_set
+│       ├── spy.py              # /spy (add, remove, list, clear)
+│       └── roast.py            # /roast
+│
+├── data/                       # Persistent runtime data
+│   ├── guilds/                 # Per-guild JSON state storage
+│   └── roasts.json             # Punchlines list
+│
+├── main.py                     # Main application entry point
+└── bot.py                      # Backward-compatible runner
+```
 
 ---
 
 ## 🛠️ Installation & Setup
 
 ### 1. Install Dependencies
+Make sure you have [uv](https://docs.astral.sh/uv/) installed, then run:
 ```bash
 uv sync
 ```
 
-### 2. Configure Secret Credentials (`.env` File)
+### 2. Configure Credentials (`.env`)
 Copy `.env.example` to `.env`:
-
-**Windows (Command Prompt / PowerShell):**
-```cmd
+```powershell
 copy .env.example .env
 ```
-
-**Linux / macOS:**
-```bash
-cp .env.example .env
-```
-
-Open the newly created `.env` file in a text editor and paste your Discord Bot Token:
+Open `.env` and fill in your Discord Bot Token:
 ```env
-DISCORD_TOKEN=your_secret_discord_token
-```
+DISCORD_TOKEN=your_secret_discord_bot_token
 
-### 3. Riddle & Target User Configuration (`data.json` File)
-Application state (riddle text, answer, and target user IDs) is stored in `data.json`:
-```json
-{
-    "riddle_text": "Le détective anglais est a moitié enfermé",
-    "riddle_answer": "lock",
-    "target_user_ids": []
-}
+# (Optional) Set your server ID for instant slash command sync during development:
+# DEV_GUILD_ID=123456789012345678
 ```
 
 ---
 
 ## ⚙️ Discord Developer Portal Configuration
 
-1. Go to the [Discord Developer Portal](https://discord.com/developers/applications).
-2. Create an Application, then go to the **Bot** menu.
-3. Retrieve your token via **Reset Token** (to paste into your `.env` file).
-4. ⚠️ **IMPORTANT**: Under **Privileged Gateway Intents**, **ENABLE** `MESSAGE CONTENT INTENT`.
-5. Under **OAuth2 > URL Generator**, select the `bot` scope and permissions `Send Messages`, `Read Message History`, `View Channels`, then use the generated URL to invite the bot to your server.
+1. Visit the [Discord Developer Portal](https://discord.com/developers/applications).
+2. Select your Application, then go to the **Bot** tab.
+3. Retrieve your token via **Reset Token** (paste it into `.env`).
+4. Under **Privileged Gateway Intents**, enable **`MESSAGE CONTENT INTENT`** (allows mention-based commands).
+5. In **OAuth2 > URL Generator**:
+   - Scopes: `bot`, `applications.commands`
+   - Permissions: `Send Messages`, `Read Message History`, `View Channels`, `Embed Links`, `Manage Messages` (optional, for riddle_set).
+6. Invite the bot to your server using the generated URL.
 
 ---
 
@@ -57,31 +106,23 @@ Application state (riddle text, answer, and target user IDs) is stored in `data.
 
 Run the bot with `uv`:
 ```bash
-uv run bot.py
+uv run main.py
 ```
-
-*(Or within an activated virtual environment)*:
-```bash
-python bot.py
-```
+*(Or `uv run bot.py`)*
 
 ---
 
-## 🎮 Commands & Features (Always Active)
+## 🎮 Slash Commands Overview
 
-The bot is **always active** and triggered directly by tagging `@RiddleBot` in Discord:
-
-- **`@RiddleBot hello`**: Displays presentation guide embed card.
-- **`@RiddleBot spy @User`** (or **`@RiddleBot spy add @User`**): Adds a user to the target list (persisted in `data.json`).
-- **`@RiddleBot spy remove @User`**: Removes a user from the target list.
-- **`@RiddleBot spy list`**: Displays all currently targeted users.
-- **`@RiddleBot resetspy`** (or **`@RiddleBot spy reset`**): Clears all targeted users from `data.json`.
-- **`@RiddleBot riddle`** (or **`@RiddleBot enigme`**): Displays the riddle and pings all targeted users.
-- **`@RiddleBot myanswer <réponse>`** (or **`@RiddleBot myanswer: <réponse>`**): Submits an answer for the riddle (restricted to targeted users).
-- **`@RiddleBot roast @User`** (or **`@RiddleBot clash @User`**): Sends a random French roast/punchline targeting a friend.
-
----
-
-## 📤 Pushing to GitHub Safely
-
-Your `.env` file is excluded in `.gitignore` and will **never** be pushed to GitHub.
+| Command | Description |
+| :--- | :--- |
+| **`/riddle`** | Displays the interactive riddle card with targeted mentions and answer button. |
+| **`/answer <réponse>`** | Submits a riddle answer directly via Slash command (private/ephemeral). |
+| **`/riddle_set <texte> <réponse>`** | *(Admin)* Configures a new riddle and secret answer. |
+| **`/spy add @Membre`** | Adds a user to the riddle target list. |
+| **`/spy remove @Membre`** | Removes a user from the target list. |
+| **`/spy list`** | Lists all currently targeted users. |
+| **`/spy clear`** | Clears the target list for the current server. |
+| **`/roast @Membre`** | Sends a randomized humorous punchline to a friend. |
+| **`/help`** | Displays the interactive bot guide and command help. |
+| **`/ping`** | Displays bot latency and API connectivity. |
