@@ -56,30 +56,15 @@ class RiddleBot(commands.Bot):
         # Register tree error handler
         self.tree.on_error = self.on_app_command_error
 
-        # Sync Slash Commands (App Commands)
-        if config.dev_guild_id:
-            dev_guild = discord.Object(id=config.dev_guild_id)
-            self.tree.copy_global_to(guild=dev_guild)
-            synced = await self.tree.sync(guild=dev_guild)
-            logger.info("Slash commands synced INSTANTLY to dev guild %s: %d commands", config.dev_guild_id, len(synced))
-        else:
-            synced = await self.tree.sync()
-            logger.info("Slash commands synced globally: %d commands", len(synced))
+        # Sync Slash Commands globally
+        synced = await self.tree.sync()
+        logger.info("Slash commands synced globally: %d commands", len(synced))
 
     async def on_ready(self) -> None:
         """Fires when the bot connection is established."""
         guild_count = len(self.guilds)
         logger.info("Logged in as %s (ID: %s)", self.user, self.user.id)
         logger.info("Connected to %d guild(s)", guild_count)
-
-        # Instant sync to each connected guild to bypass Discord's 1-hour global propagation delay
-        for guild in self.guilds:
-            try:
-                self.tree.copy_global_to(guild=guild)
-                synced = await self.tree.sync(guild=guild)
-                logger.info("Instant synced %d commands to guild: %s (ID: %s)", len(synced), guild.name, guild.id)
-            except Exception as e:
-                logger.warning("Could not instant sync to guild %s: %s", guild.id, e)
 
         # Set rich presence activity
         activity = discord.Activity(
