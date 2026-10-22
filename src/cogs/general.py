@@ -66,8 +66,11 @@ class GeneralCog(commands.Cog, name="Général"):
         )
 
         embed.add_field(
-            name="⚙️ 4. Diagnostic",
-            value="• `/ping` : Affiche la latence du bot et l'état de connexion.",
+            name="⚙️ 4. Diagnostic & Admin",
+            value=(
+                "• `/ping` : Affiche la latence du bot et l'état de connexion.\n"
+                "• `!sync` : Force la synchronisation instantanée des commandes slash."
+            ),
             inline=False,
         )
 
@@ -96,6 +99,18 @@ class GeneralCog(commands.Cog, name="Général"):
             await ctx.interaction.response.send_message(embed=embed)
         else:
             await ctx.send(embed=embed)
+
+    @commands.command(name="sync")
+    @commands.has_permissions(manage_messages=True)
+    async def sync_command(self, ctx: commands.Context) -> None:
+        """Force la synchronisation instantanée des commandes slash sur ce serveur."""
+        if not ctx.guild:
+            await ctx.send("❌ Cette commande doit être exécutée dans un serveur.")
+            return
+
+        self.bot.tree.copy_global_to(guild=ctx.guild)
+        synced = await self.bot.tree.sync(guild=ctx.guild)
+        await ctx.send(f"✅ **{len(synced)}** commandes slash synchronisées instantanément sur ce serveur !")
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
