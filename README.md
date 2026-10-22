@@ -17,6 +17,7 @@ Features **Slash Commands (`/`)**, **Interactive Buttons & Modal pop-ups** (anti
   - Sends a styled card with the active riddle, targeted players, and par.
   - **"🔑 Proposer une réponse" Button:** Opens a private Discord Modal window.
   - **"📖 Définition", "🔍 Indicateurs", "🧩 Fodder" Buttons:** Players can reveal breakdown clues privately via ephemeral messages without spoiling the puzzle for others!
+  - **Dynamic Real-Time Clue Updates (`/riddle_edit`):** Edit clues (definition, indicator, fodder, par) at any time. Active riddle cards and button availability update live in the channel!
   - **Anti-Cheat / Anti-Spoiler:** Guesses submitted through the modal and clue buttons are validated privately with ephemeral responses so no one can copy or leak answers!
   - **Dynamic Configuration (`/riddle_set`):** Configure the riddle text, secret answer, definition, indicators, fodder, and par directly via Slash command without touching JSON files or rebooting!
 - 🎯 **Target Player Management (`/spy`):**
@@ -59,7 +60,7 @@ BotDiscord/
 │   │
 │   └── cogs/                   # Modular feature extensions
 │       ├── general.py          # /help, /ping, bot status
-│       ├── riddle.py           # /riddle, /answer, /riddle_set
+│       ├── riddle.py           # /riddle, /answer, /riddle_set, /riddle_edit
 │       ├── spy.py              # /spy (add, remove, list, clear)
 │       └── roast.py            # /roast
 │
@@ -125,7 +126,8 @@ uv run main.py
 | :--- | :--- |
 | **`/riddle`** | Displays the interactive riddle card with par, targeted mentions, and hint/answer buttons. |
 | **`/answer <réponse>`** | Submits a riddle answer directly via Slash command (private/ephemeral). |
-| **`/riddle_set <texte> <réponse> <définition> <indicateurs> <fodder> [par]`** | *(Admin)* Configures a new riddle, its answer, clues (definition, indicator, fodder), and par. |
+| **`/riddle_set <texte> <réponse> <définition> <indicateurs> <fodder> [par]`** | *(Admin)* Configures a new riddle, its answer, clues, and par. |
+| **`/riddle_edit [définition] [indicateurs] [fodder] [par] [texte] [réponse]`** | *(Admin)* Partially edits clues, par, or riddle text and updates buttons live. |
 | **`/spy add @Membre`** | Adds a user to the riddle target list. |
 | **`/spy remove @Membre`** | Removes a user from the target list. |
 | **`/spy list`** | Lists all currently targeted users. |

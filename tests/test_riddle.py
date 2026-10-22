@@ -52,6 +52,40 @@ class TestRiddleStorage(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(data["fodder"], "'12', '55', and 'n'. (substitute)")
         self.assertEqual(data["par"], 4)
 
+    async def test_edit_riddle_partial_update(self) -> None:
+        guild_id = 88888
+        await self.storage.set_riddle(
+            guild_id=guild_id,
+            text="Initial Clue (5)",
+            answer="apple",
+            definition="A fruit",
+            indicators="None",
+            fodder="appl",
+            par=4,
+        )
+
+        # Partially update only fodder and par
+        await self.storage.edit_riddle(
+            guild_id=guild_id,
+            fodder="new fodder letters",
+            par=2,
+        )
+
+        data = await self.storage.get_guild_data(guild_id)
+        self.assertEqual(data["riddle_text"], "Initial Clue (5)")
+        self.assertEqual(data["riddle_answer"], "apple")
+        self.assertEqual(data["definition"], "A fruit")
+        self.assertEqual(data["indicators"], "None")
+        self.assertEqual(data["fodder"], "new fodder letters")
+        self.assertEqual(data["par"], 2)
+
+    async def test_set_last_riddle_message(self) -> None:
+        guild_id = 77777
+        await self.storage.set_last_riddle_message(guild_id, 1001, 2002)
+        data = await self.storage.get_guild_data(guild_id)
+        self.assertEqual(data["last_channel_id"], 1001)
+        self.assertEqual(data["last_message_id"], 2002)
+
     async def test_check_answer_removes_target(self) -> None:
         guild_id = 11111
         user_id = 42
@@ -85,6 +119,31 @@ class TestRiddleView(unittest.IsolatedAsyncioTestCase):
         self.assertIn("riddle:fodder_button", custom_ids)
 
         self.assertIsNone(view.timeout)
+
+    def test_create_for_guild_dynamic_button_disabling(self) -> None:
+        mock_bot = MagicMock()
+
+        # Case 1: All clues present
+        guild_data_full = {
+            "definition": "Some definition",
+            "indicators": "+ and -",
+            "fodder": "letters",
+        }
+        view_full = RiddleView.create_for_guild(mock_bot, guild_data_full)
+        self.assertFalse(view_full.definition_button.disabled)
+        self.assertFalse(view_full.indicators_button.disabled)
+        self.assertFalse(view_full.fodder_button.disabled)
+
+        # Case 2: Only definition is set, indicators & fodder empty
+        guild_data_partial = {
+            "definition": "Only def",
+            "indicators": "",
+            "fodder": "   ",
+        }
+        view_partial = RiddleView.create_for_guild(mock_bot, guild_data_partial)
+        self.assertFalse(view_partial.definition_button.disabled)
+        self.assertTrue(view_partial.indicators_button.disabled)
+        self.assertTrue(view_partial.fodder_button.disabled)
 
     async def test_clue_buttons_response(self) -> None:
         mock_bot = MagicMock()

@@ -45,6 +45,8 @@ class StorageService:
             "indicators": "",
             "fodder": "",
             "par": 4,
+            "last_channel_id": None,
+            "last_message_id": None,
         }
 
         if LEGACY_DATA_FILE.exists():
@@ -58,6 +60,8 @@ class StorageService:
                     template["indicators"] = data.get("indicators", "")
                     template["fodder"] = data.get("fodder", "")
                     template["par"] = data.get("par", 4)
+                    template["last_channel_id"] = data.get("last_channel_id")
+                    template["last_message_id"] = data.get("last_message_id")
                     logger.info("Migrated legacy template from data.json")
             except Exception as e:
                 logger.warning("Could not read legacy data.json: %s", e)
@@ -86,6 +90,8 @@ class StorageService:
                 data.setdefault("indicators", "")
                 data.setdefault("fodder", "")
                 data.setdefault("par", 4)
+                data.setdefault("last_channel_id", None)
+                data.setdefault("last_message_id", None)
                 return data
         except Exception as e:
             logger.error("Failed to read data for guild %s: %s", guild_id, e)
@@ -97,6 +103,8 @@ class StorageService:
                 "indicators": "",
                 "fodder": "",
                 "par": 4,
+                "last_channel_id": None,
+                "last_message_id": None,
             }
 
     def _write_guild_file_sync(self, guild_id: int, data: dict[str, Any]) -> None:
@@ -149,6 +157,43 @@ class StorageService:
         data["par"] = par
         await self.save_guild_data(guild_id)
         logger.info("Updated riddle for guild %s", guild_id)
+
+    async def edit_riddle(
+        self,
+        guild_id: int,
+        text: str | None = None,
+        answer: str | None = None,
+        definition: str | None = None,
+        indicators: str | None = None,
+        fodder: str | None = None,
+        par: int | None = None,
+    ) -> dict[str, Any]:
+        """Partially updates specified fields of the riddle for the specified guild."""
+        data = await self.get_guild_data(guild_id)
+        if text is not None:
+            data["riddle_text"] = text.strip()
+        if answer is not None:
+            data["riddle_answer"] = answer.strip()
+        if definition is not None:
+            data["definition"] = definition.strip()
+        if indicators is not None:
+            data["indicators"] = indicators.strip()
+        if fodder is not None:
+            data["fodder"] = fodder.strip()
+        if par is not None:
+            data["par"] = par
+        await self.save_guild_data(guild_id)
+        logger.info("Partially edited riddle for guild %s", guild_id)
+        return data
+
+    async def set_last_riddle_message(
+        self, guild_id: int, channel_id: int, message_id: int
+    ) -> None:
+        """Stores the location of the latest riddle message for live updates."""
+        data = await self.get_guild_data(guild_id)
+        data["last_channel_id"] = channel_id
+        data["last_message_id"] = message_id
+        await self.save_guild_data(guild_id)
 
     async def get_targets(self, guild_id: int) -> set[int]:
         """Returns the set of targeted user IDs."""

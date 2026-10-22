@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import discord
 
@@ -97,9 +97,44 @@ class RiddleAnswerModal(discord.ui.Modal, title="🧩 Proposer une réponse"):
 class RiddleView(discord.ui.View):
     """Persistent view with interactive buttons for the riddle card."""
 
-    def __init__(self, bot: RiddleBot) -> None:
+    def __init__(
+        self,
+        bot: RiddleBot,
+        has_definition: bool = True,
+        has_indicators: bool = True,
+        has_fodder: bool = True,
+    ) -> None:
         super().__init__(timeout=None)
         self.bot = bot
+
+        # Dynamically set button states based on configured clues
+        self.definition_button.disabled = not has_definition
+        self.definition_button.style = (
+            discord.ButtonStyle.primary if has_definition else discord.ButtonStyle.secondary
+        )
+
+        self.indicators_button.disabled = not has_indicators
+        self.indicators_button.style = (
+            discord.ButtonStyle.primary if has_indicators else discord.ButtonStyle.secondary
+        )
+
+        self.fodder_button.disabled = not has_fodder
+        self.fodder_button.style = (
+            discord.ButtonStyle.primary if has_fodder else discord.ButtonStyle.secondary
+        )
+
+    @classmethod
+    def create_for_guild(cls, bot: RiddleBot, guild_data: dict[str, Any]) -> RiddleView:
+        """Factory method creating a view with button states matching guild clues."""
+        has_def = bool(str(guild_data.get("definition", "")).strip())
+        has_ind = bool(str(guild_data.get("indicators", "")).strip())
+        has_fod = bool(str(guild_data.get("fodder", "")).strip())
+        return cls(
+            bot=bot,
+            has_definition=has_def,
+            has_indicators=has_ind,
+            has_fodder=has_fod,
+        )
 
     @discord.ui.button(
         label="Proposer une réponse",
@@ -158,7 +193,7 @@ class RiddleView(discord.ui.View):
             return
 
         guild_data = await self.bot.storage.get_guild_data(interaction.guild_id)
-        definition = guild_data.get("definition", "").strip()
+        definition = str(guild_data.get("definition", "")).strip()
 
         if not definition:
             await interaction.response.send_message(
@@ -193,7 +228,7 @@ class RiddleView(discord.ui.View):
             return
 
         guild_data = await self.bot.storage.get_guild_data(interaction.guild_id)
-        indicators = guild_data.get("indicators", "").strip()
+        indicators = str(guild_data.get("indicators", "")).strip()
 
         if not indicators:
             await interaction.response.send_message(
@@ -228,7 +263,7 @@ class RiddleView(discord.ui.View):
             return
 
         guild_data = await self.bot.storage.get_guild_data(interaction.guild_id)
-        fodder = guild_data.get("fodder", "").strip()
+        fodder = str(guild_data.get("fodder", "")).strip()
 
         if not fodder:
             await interaction.response.send_message(
