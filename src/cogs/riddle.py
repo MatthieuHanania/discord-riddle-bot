@@ -29,7 +29,7 @@ class RiddleCog(commands.Cog, name="Énigme"):
         description="Affiche l'énigme active et notifie les joueurs ciblés.",
     )
     async def riddle_command(self, ctx: commands.Context) -> None:
-        """Affiche la carte interactive de l'énigme avec bouton de réponse."""
+        """Affiche la carte interactive de l'énigme avec boutons d'indices et de réponse."""
         if not ctx.guild:
             await ctx.send("❌ Cette commande ne peut être utilisée que dans un serveur.")
             return
@@ -37,11 +37,18 @@ class RiddleCog(commands.Cog, name="Énigme"):
         guild_data = await self.bot.storage.get_guild_data(ctx.guild.id)
         riddle_text = guild_data.get("riddle_text", "Aucune énigme configurée.")
         targets = set(guild_data.get("target_user_ids", []))
+        par = guild_data.get("par", 4)
 
         embed = discord.Embed(
             title="🧩 Énigme en cours",
             description=f">>> ### \"{riddle_text}\"",
             color=discord.Color.blurple(),
+        )
+
+        embed.add_field(
+            name="⛳ Par",
+            value=f"**{par}** essai{'s' if par > 1 else ''}",
+            inline=True,
         )
 
         if targets:
@@ -59,7 +66,7 @@ class RiddleCog(commands.Cog, name="Énigme"):
             )
 
         embed.set_footer(
-            text="💡 Cliquez sur 'Proposer une réponse' ci-dessous pour répondre discrètement."
+            text="💡 Cliquez sur les boutons ci-dessous pour révéler des indices ou proposer une réponse."
         )
 
         view = RiddleView(self.bot)
@@ -70,30 +77,53 @@ class RiddleCog(commands.Cog, name="Énigme"):
 
     @app_commands.command(
         name="riddle_set",
-        description="Définit une nouvelle énigme et sa réponse (Réservé aux gérants).",
+        description="Définit une nouvelle énigme avec sa définition, ses indicateurs, son fodder et son par.",
     )
     @app_commands.describe(
         texte="L'énoncé de l'énigme à afficher publiquement",
         reponse="Le mot ou la phrase secrète qui valide l'énigme",
+        definition="La définition du mot à deviner (ex: 9-12)",
+        indicateurs="Les indicateurs / opérations (ex: - (deletion) and + (addition))",
+        fodder="Le matériau / lettres de base (ex: '12', '55', and 'n'. (substitute))",
+        par="Nombre moyen d'essais attendu par joueur (défaut : 4)",
     )
     @app_commands.checks.has_permissions(manage_messages=True)
     async def set_riddle(
-        self, interaction: discord.Interaction, texte: str, reponse: str
+        self,
+        interaction: discord.Interaction,
+        texte: str,
+        reponse: str,
+        definition: str,
+        indicateurs: str,
+        fodder: str,
+        par: app_commands.Range[int, 1, 100] = 4,
     ) -> None:
-        """Permet de configurer une nouvelle énigme sans modifier de fichier JSON."""
+        """Permet de configurer une nouvelle énigme et ses indices sans modifier de fichier JSON."""
         if not interaction.guild_id:
             await interaction.response.send_message(
                 "❌ Cette commande doit être utilisée dans un serveur.", ephemeral=True
             )
             return
 
-        await self.bot.storage.set_riddle(interaction.guild_id, texte, reponse)
+        await self.bot.storage.set_riddle(
+            interaction.guild_id,
+            text=texte,
+            answer=reponse,
+            definition=definition,
+            indicators=indicateurs,
+            fodder=fodder,
+            par=par,
+        )
 
         embed = discord.Embed(
             title="✅ Nouvelle énigme enregistrée !",
             description=(
                 f"**Énoncé :**\n>>> {texte}\n\n"
                 f"🤫 **Réponse secrète :** ||`{reponse}`||\n"
+                f"📖 **Définition :** {definition}\n"
+                f"🔍 **Indicateurs :** {indicateurs}\n"
+                f"🧩 **Fodder :** {fodder}\n"
+                f"⛳ **Par :** {par} essai{'s' if par > 1 else ''}\n\n"
                 f"*(Visible uniquement par vous)*"
             ),
             color=discord.Color.green(),

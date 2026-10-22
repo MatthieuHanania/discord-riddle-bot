@@ -41,6 +41,10 @@ class StorageService:
             "riddle_text": config.default_riddle_text,
             "riddle_answer": config.default_riddle_answer,
             "target_user_ids": [],
+            "definition": "",
+            "indicators": "",
+            "fodder": "",
+            "par": 4,
         }
 
         if LEGACY_DATA_FILE.exists():
@@ -50,6 +54,10 @@ class StorageService:
                     template["riddle_text"] = data.get("riddle_text", template["riddle_text"])
                     template["riddle_answer"] = data.get("riddle_answer", template["riddle_answer"])
                     template["target_user_ids"] = list(data.get("target_user_ids", []))
+                    template["definition"] = data.get("definition", "")
+                    template["indicators"] = data.get("indicators", "")
+                    template["fodder"] = data.get("fodder", "")
+                    template["par"] = data.get("par", 4)
                     logger.info("Migrated legacy template from data.json")
             except Exception as e:
                 logger.warning("Could not read legacy data.json: %s", e)
@@ -74,6 +82,10 @@ class StorageService:
                 data.setdefault("riddle_text", config.default_riddle_text)
                 data.setdefault("riddle_answer", config.default_riddle_answer)
                 data.setdefault("target_user_ids", [])
+                data.setdefault("definition", "")
+                data.setdefault("indicators", "")
+                data.setdefault("fodder", "")
+                data.setdefault("par", 4)
                 return data
         except Exception as e:
             logger.error("Failed to read data for guild %s: %s", guild_id, e)
@@ -81,6 +93,10 @@ class StorageService:
                 "riddle_text": config.default_riddle_text,
                 "riddle_answer": config.default_riddle_answer,
                 "target_user_ids": [],
+                "definition": "",
+                "indicators": "",
+                "fodder": "",
+                "par": 4,
             }
 
     def _write_guild_file_sync(self, guild_id: int, data: dict[str, Any]) -> None:
@@ -113,11 +129,24 @@ class StorageService:
                 data = self._cache[guild_id]
                 await asyncio.to_thread(self._write_guild_file_sync, guild_id, data)
 
-    async def set_riddle(self, guild_id: int, text: str, answer: str) -> None:
-        """Sets a new riddle and answer for the specified guild."""
+    async def set_riddle(
+        self,
+        guild_id: int,
+        text: str,
+        answer: str,
+        definition: str = "",
+        indicators: str = "",
+        fodder: str = "",
+        par: int = 4,
+    ) -> None:
+        """Sets a new riddle, hints, and par for the specified guild."""
         data = await self.get_guild_data(guild_id)
         data["riddle_text"] = text.strip()
         data["riddle_answer"] = answer.strip()
+        data["definition"] = definition.strip()
+        data["indicators"] = indicators.strip()
+        data["fodder"] = fodder.strip()
+        data["par"] = par
         await self.save_guild_data(guild_id)
         logger.info("Updated riddle for guild %s", guild_id)
 

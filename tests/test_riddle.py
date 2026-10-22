@@ -1,0 +1,129 @@
+"""Unit tests for RiddleBot riddle setup, storage, and UI view."""
+
+from __future__ import annotations
+
+import asyncio
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
+
+import discord
+
+from src.services.storage import StorageService
+from src.ui.riddle_views import RiddleView
+
+
+class TestRiddleStorage(unittest.IsolatedAsyncioTestCase):
+    """Tests for StorageService handling riddles, clues, and targets."""
+
+    async def asyncSetUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.storage = StorageService(guilds_dir=Path(self.temp_dir.name))
+
+    async def asyncTearDown(self) -> None:
+        self.temp_dir.cleanup()
+
+    async def test_default_guild_data(self) -> None:
+        guild_id = 12345
+        data = await self.storage.get_guild_data(guild_id)
+        self.assertEqual(data.get("definition"), "")
+        self.assertEqual(data.get("indicators"), "")
+        self.assertEqual(data.get("fodder"), "")
+        self.assertEqual(data.get("par"), 4)
+
+    async def test_set_riddle_with_clues_and_par(self) -> None:
+        guild_id = 99999
+        await self.storage.set_riddle(
+            guild_id=guild_id,
+            text="12 - 55 + n = 9-12 (5)",
+            answer="tween",
+            definition="9-12",
+            indicators="- (deletion) and + (addition)",
+            fodder="'12', '55', and 'n'. (substitute)",
+            par=4,
+        )
+
+        data = await self.storage.get_guild_data(guild_id)
+        self.assertEqual(data["riddle_text"], "12 - 55 + n = 9-12 (5)")
+        self.assertEqual(data["riddle_answer"], "tween")
+        self.assertEqual(data["definition"], "9-12")
+        self.assertEqual(data["indicators"], "- (deletion) and + (addition)")
+        self.assertEqual(data["fodder"], "'12', '55', and 'n'. (substitute)")
+        self.assertEqual(data["par"], 4)
+
+    async def test_check_answer_removes_target(self) -> None:
+        guild_id = 11111
+        user_id = 42
+        await self.storage.clear_targets(guild_id)
+        await self.storage.set_riddle(guild_id, "clue", "sol")
+        await self.storage.add_target(guild_id, user_id)
+
+        # Wrong answer
+        is_correct, count, _ = await self.storage.check_answer(guild_id, user_id, "wrong")
+        self.assertFalse(is_correct)
+        self.assertEqual(count, 1)
+
+        # Correct answer
+        is_correct, count, _ = await self.storage.check_answer(guild_id, user_id, "sol")
+        self.assertTrue(is_correct)
+        self.assertEqual(count, 0)
+
+
+class TestRiddleView(unittest.IsolatedAsyncioTestCase):
+    """Tests for RiddleView buttons and interactive behavior."""
+
+    def test_view_buttons_presence(self) -> None:
+        mock_bot = MagicMock()
+        view = RiddleView(mock_bot)
+
+        custom_ids = [child.custom_id for child in view.children if hasattr(child, "custom_id")]
+        self.assertIn("riddle:submit_answer_button", custom_ids)
+        self.assertIn("riddle:rules_button", custom_ids)
+        self.assertIn("riddle:definition_button", custom_ids)
+        self.assertIn("riddle:indicators_button", custom_ids)
+        self.assertIn("riddle:fodder_button", custom_ids)
+
+        self.assertIsNone(view.timeout)
+
+    async def test_clue_buttons_response(self) -> None:
+        mock_bot = MagicMock()
+        mock_bot.storage = AsyncMock()
+        mock_bot.storage.get_guild_data.return_value = {
+            "definition": "9-12",
+            "indicators": "- and +",
+            "fodder": "12, 55, n",
+        }
+
+        view = RiddleView(mock_bot)
+
+        # Test definition button
+        interaction = AsyncMock(spec=discord.Interaction)
+        interaction.guild_id = 12345
+        interaction.response = AsyncMock()
+
+        await view.definition_button.callback(interaction)
+        interaction.response.send_message.assert_called_once()
+        _, kwargs = interaction.response.send_message.call_args
+        self.assertTrue(kwargs.get("ephemeral"))
+        self.assertIn("9-12", kwargs["embed"].description)
+
+        # Test indicators button
+        interaction.response.reset_mock()
+        await view.indicators_button.callback(interaction)
+        interaction.response.send_message.assert_called_once()
+        _, kwargs = interaction.response.send_message.call_args
+        self.assertTrue(kwargs.get("ephemeral"))
+        self.assertIn("- and +", kwargs["embed"].description)
+
+        # Test fodder button
+        interaction.response.reset_mock()
+        await view.fodder_button.callback(interaction)
+        interaction.response.send_message.assert_called_once()
+        _, kwargs = interaction.response.send_message.call_args
+        self.assertTrue(kwargs.get("ephemeral"))
+        self.assertIn("12, 55, n", kwargs["embed"].description)
+
+
+if __name__ == "__main__":
+    unittest.main()

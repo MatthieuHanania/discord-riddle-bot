@@ -40,9 +40,9 @@ class GeneralCog(commands.Cog, name="Général"):
             name="🧩 1. Énigmes interactives",
             value=(
                 "• `/riddle` : Affiche l'énigme active et notifie les joueurs ciblés.\n"
-                "• **Bouton 'Proposer une réponse'** : Ouvre un pop-up privé sans spoiler le salon !\n"
+                "• **Boutons interactifs** : Définition, Indicateurs, Fodder et Réponse discrète !\n"
                 "• `/answer <texte>` : Soumet une réponse directement par commande.\n"
-                "• `/riddle_set <texte> <réponse>` : *(Admin)* Configure une nouvelle énigme."
+                "• `/riddle_set <texte> <réponse> <définition> <indicateurs> <fodder> [par]` : Configure une énigme complète avec indices."
             ),
             inline=False,
         )
