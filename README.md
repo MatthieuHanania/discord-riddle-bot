@@ -1,5 +1,11 @@
 # 🧩 RiddleBot — Interactive Discord Riddle & Game Bot
 
+[![CI](https://github.com/MatthieuHanania/discord-riddle-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/MatthieuHanania/discord-riddle-bot/actions)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![discord.py](https://img.shields.io/badge/discord.py-v2.x-5865F2.svg?style=flat&logo=discord&logoColor=white)](https://discordpy.readthedocs.io/)
+[![Package Manager: uv](https://img.shields.io/badge/package%20manager-uv-DE5FE9.svg?style=flat&logo=rust&logoColor=white)](https://docs.astral.sh/uv/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A modern, scalable Discord bot built with **Python 3.12+**, **`discord.py` 2.x**, and managed with **`uv`**.  
 Features **Slash Commands (`/`)**, **Interactive Buttons & Modal pop-ups** (anti-cheat answer submissions), **guild-isolated state persistence**, and **modular Cogs architecture**.
 

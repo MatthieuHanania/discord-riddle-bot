@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    name: Lint & Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Syntax and bytecode compilation
+        run: uv run python -m py_compile main.py bot.py src/bot.py src/config.py src/services/storage.py src/services/roast_service.py src/ui/riddle_views.py src/cogs/general.py src/cogs/riddle.py src/cogs/spy.py src/cogs/roast.py
+
+      - name: Component import & sanity check
+        env:
+          DISCORD_TOKEN: "mock_ci_token_for_validation"
+        run: |
+          uv run python -c "
+          import asyncio
+          from src.bot import RiddleBot
+          from src.services.storage import StorageService
+          from src.services.roast_service import RoastService
+
+          async def check():
+              storage = StorageService()
+              roasts = RoastService()
+              assert roasts.count() > 0, 'Roasts list should not be empty'
+              bot = RiddleBot()
+              for cog in ['src.cogs.general', 'src.cogs.riddle', 'src.cogs.spy', 'src.cogs.roast']:
+                  await bot.load_extension(cog)
+              print('All Cogs loaded successfully.')
+
+          asyncio.run(check())
+          "
