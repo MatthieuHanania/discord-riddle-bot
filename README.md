@@ -6,33 +6,31 @@
 [![Package Manager: uv](https://img.shields.io/badge/package%20manager-uv-DE5FE9.svg?style=flat&logo=rust&logoColor=white)](https://docs.astral.sh/uv/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A modern, scalable Discord bot built with **Python 3.12+**, **`discord.py` 2.x**, and managed with **`uv`**.  
-Features **Slash Commands (`/`)**, **Interactive Buttons & Modal pop-ups** (anti-cheat answer submissions and spoiler-free hints), **guild-isolated state persistence**, and **modular Cogs architecture**.
+A modern, scalable Discord bot built with **Python 3.10+**, **`discord.py` 2.x**, and managed with **`uv`** (with standard `requirements.txt` support for cloud hosts like **Wispbyte**).  
+Features **pure Slash Commands (`/`)**, **Interactive Buttons & Modal pop-ups** (anti-cheat answer submissions and spoiler-free hints), **live message & button updates**, **guild-isolated state persistence**, and a **modular Cogs architecture**.
 
 ---
 
 ## ✨ Features
 
 - 🧩 **Interactive Riddles (`/riddle`):**
-  - Sends a styled card with the active riddle and targeted players.
-  - **"🔑 Proposer une réponse" Button:** Opens a private Discord Modal window.
-  - **"📖 Définition", "🔍 Indicateurs", "🧩 Fodder" Buttons:** Players can reveal breakdown clues privately via ephemeral messages without spoiling the puzzle for others!
-  - **Dynamic Real-Time Clue Updates (`/riddle_edit`):** Edit clues (definition, indicator, fodder) at any time. Active riddle cards and button availability update live in the channel!
-  - **Anti-Cheat / Anti-Spoiler:** Guesses submitted through the modal and clue buttons are validated privately with ephemeral responses so no one can copy or leak answers!
-  - **Dynamic Configuration (`/riddle_set`):** Configure the riddle text, secret answer, definition, indicators, and fodder directly via Slash command without touching JSON files or rebooting!
+  - Sends a styled card with the active riddle and targeted players (or a clean empty-state prompt if no riddle is configured yet).
+  - **"🔑 Proposer une réponse" Button:** Opens a private Discord Modal window to submit guesses discreetly.
+  - **"📖 Définition", "🔍 Indicateurs", "🧩 Fodder" Buttons:** Players can reveal breakdown clues privately via ephemeral messages without spoiling the puzzle for others. Buttons automatically enable or disable depending on which clues are configured!
+  - **Dynamic Real-Time Clue Updates (`/riddle_edit`):** Edit clues (`definition`, `indicateurs`, `fodder`), riddle text, or the secret answer individually at any time. The active riddle card and its buttons update live in the Discord channel!
+  - **Dynamic Configuration (`/riddle_set`):** Configure a complete riddle (`texte`, `réponse`, `définition`, `indicateurs`, `fodder`) directly via Slash command without touching JSON files or rebooting.
+  - **Anti-Cheat / Anti-Spoiler:** Guesses submitted through the modal, `/answer`, and clue buttons are handled privately with ephemeral responses so no one can copy or leak answers.
 - 🎯 **Target Player Management (`/spy`):**
   - Add, remove, list, or clear targeted players per server (`/spy add`, `/spy remove`, `/spy list`, `/spy clear`).
-  - Isolated per server: each Discord server has its own riddle and target list!
+  - Automatically removes a player from the remaining target list as soon as they find the right answer and announces their progress in the channel.
+  - **Guild-Isolated Persistence:** Each Discord server has its own state stored asynchronously in `data/guilds/<guild_id>.json`.
 - 🔥 **Fun & Roasts (`/roast`):**
-  - Roasts a friend with a curated collection of punchlines loaded asynchronously from `data/roasts.json`.
-- ⚡ **Pure Discord Slash Commands (`/`):**
-  - Native autocomplete and Discord slash command tree integration.
-  - Ephemeral private validation so users cannot cheat or spoil riddles.
-- 🏗️ **Clean Architecture (GitHub Best Practices):**
-  - Subclassed `commands.Bot` with asynchronous `setup_hook`.
+  - Roasts a friend with a randomized punchline loaded from `data/roasts.json`.
+- 🏗️ **Clean Architecture & Automated Tests:**
+  - Subclassed `commands.Bot` (`RiddleBot`) with asynchronous `setup_hook` and persistent `discord.ui.View` registration across restarts.
   - Feature modularity using **Cogs** (`cogs/riddle.py`, `cogs/spy.py`, `cogs/roast.py`, `cogs/general.py`).
   - Dedicated non-blocking **Services** (`StorageService`, `RoastService`).
-  - Structured console logging with timestamps and log levels.
+  - Unit test suite (`tests/`) and GitHub Actions CI pipeline.
 
 ---
 
@@ -40,45 +38,68 @@ Features **Slash Commands (`/`)**, **Interactive Buttons & Modal pop-ups** (anti
 
 ```text
 BotDiscord/
-├── pyproject.toml              # UV dependencies & project metadata
-├── uv.lock                     # Deterministic dependency lockfile
+├── .github/workflows/ci.yml    # GitHub Actions CI (syntax check & unit tests)
+├── pyproject.toml              # UV project metadata & dependencies
+├── uv.lock                     # Deterministic UV lockfile
+├── requirements.txt            # Pip dependencies (used for Wispbyte deployment)
 ├── .env.example                # Environment variables template
 ├── .env                        # Local secrets (DISCORD_TOKEN) - ignored by git
 ├── .gitignore
 ├── README.md
 │
 ├── src/
-│   ├── config.py               # Typed configuration & env loader
-│   ├── bot.py                  # Custom RiddleBot subclass (setup_hook & tree sync)
+│   ├── config.py               # Typed configuration & .env loader
+│   ├── bot.py                  # Custom RiddleBot subclass (setup_hook, persistent views & tree sync)
 │   │
 │   ├── services/               # Asynchronous service layer
-│   │   ├── storage.py          # Guild-isolated async storage (riddles, hints, targets)
+│   │   ├── storage.py          # Guild-isolated async JSON storage (riddles, clues, targets)
 │   │   └── roast_service.py    # Punchlines & roasts manager
 │   │
 │   ├── ui/                     # Discord UI components
-│   │   └── riddle_views.py     # Persistent Buttons (hints & answers) & Modal popups
+│   │   └── riddle_views.py     # Persistent RiddleView buttons (clues & rules) & RiddleAnswerModal
 │   │
 │   └── cogs/                   # Modular feature extensions
-│       ├── general.py          # /help, /ping
+│       ├── general.py          # /help, /ping, and @Bot mentionsync
 │       ├── riddle.py           # /riddle, /answer, /riddle_set, /riddle_edit
 │       ├── spy.py              # /spy (add, remove, list, clear)
 │       └── roast.py            # /roast
 │
-├── data/                       # Persistent runtime data
-│   ├── guilds/                 # Per-guild JSON state storage
-│   └── roasts.json             # Punchlines list
+├── data/                       # Runtime data
+│   ├── guilds/                 # Per-guild JSON state storage (auto-created, git-ignored)
+│   └── roasts.json             # Curated French punchlines list
+│
+├── tests/                      # Automated unit tests
+│   ├── test_riddle.py          # Riddle storage, clue editing & dynamic UI button tests
+│   └── test_storage.py         # Empty-state & answer checking tests
 │
 └── main.py                     # Main application entry point
 ```
 
 ---
 
-## 🛠️ Installation & Setup
+## ⚙️ Discord Developer Portal Configuration
+
+1. Visit the [Discord Developer Portal](https://discord.com/developers/applications) and create/select your Application.
+2. Go to the **Bot** tab:
+   - Click **Reset Token** to retrieve your `DISCORD_TOKEN`.
+   - Under **Privileged Gateway Intents**, enable **Message Content Intent** and save changes.
+3. Go to **OAuth2 > URL Generator**:
+   - **Scopes:** `bot`, `applications.commands`
+   - **Bot Permissions:** `Send Messages`, `Read Message History`, `View Channels`, `Embed Links`, `Use Slash Commands`, `Manage Messages` (required for admins using `/riddle_set` and `/riddle_edit`).
+4. Copy the generated URL and invite the bot to your Discord server.
+
+---
+
+## 🛠️ Local Installation & Setup
 
 ### 1. Install Dependencies
-Make sure you have [uv](https://docs.astral.sh/uv/) installed, then run:
+Using [uv](https://docs.astral.sh/uv/) (recommended):
 ```bash
 uv sync
+```
+Or using standard `pip`:
+```bash
+pip install -r requirements.txt
 ```
 
 ### 2. Configure Credentials (`.env`)
@@ -86,49 +107,64 @@ Copy `.env.example` to `.env`:
 ```powershell
 copy .env.example .env
 ```
-Open `.env` and fill in your Discord Bot Token:
+Open `.env` and set your Discord Bot Token:
 ```env
 DISCORD_TOKEN=your_secret_discord_bot_token
-
-# (Optional) Set your server ID for instant slash command sync during development:
-# DEV_GUILD_ID=123456789012345678
 ```
 
----
-
-## ⚙️ Discord Developer Portal Configuration
-
-1. Visit the [Discord Developer Portal](https://discord.com/developers/applications).
-2. Select your Application, then go to the **Bot** tab.
-3. Retrieve your token via **Reset Token** (paste it into `.env`).
-4. In **OAuth2 > URL Generator**:
-   - Scopes: `bot`, `applications.commands`
-   - Permissions: `Send Messages`, `Read Message History`, `View Channels`, `Embed Links`, `Manage Messages` (optional, for riddle_set).
-5. Invite the bot to your server using the generated URL.
-
----
-
-## 🚀 Running the Bot
-
-Run the bot with `uv`:
+### 3. Run the Bot Locally
 ```bash
 uv run main.py
 ```
+
+### 4. Run Unit Tests
+```bash
+uv run python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+---
+
+## ☁️ Deploying on Wispbyte (24/7 Hosting)
+
+The project includes a `requirements.txt` and `main.py` at the root so it can be deployed out-of-the-box on **[Wispbyte](https://wispbyte.com/)** (or any Pterodactyl-based Python host):
+
+1. **Create a Server on Wispbyte:**
+   - Select **Python** as the server environment.
+2. **Deploy the Code:**
+   - Either connect/pull your GitHub repository (`main` branch) via the **Git** tab, or upload the project files (`main.py`, `requirements.txt`, `src/`, `data/roasts.json`) in the **Files** tab.
+3. **Configure the `.env` File:**
+   - In the Wispbyte **Files** tab, create a new file named `.env` at the root directory containing:
+     ```env
+     DISCORD_TOKEN=your_secret_discord_bot_token
+     ```
+4. **Check Startup Settings (`Startup` Tab):**
+   - **Main file / Bot file:** `main.py`
+   - **Additional Python packages / Requirements file:** `requirements.txt` (Wispbyte automatically installs `discord.py` and `python-dotenv` from `requirements.txt` on startup).
+5. **Start / Restart the Bot:**
+   - Go to the **Console** tab and click **Start** (or **Restart** after pulling new updates).
+   - You should see:
+     ```text
+     [INFO] riddlebot.bot: Slash commands synced globally: 8 commands
+     [INFO] riddlebot.bot: Logged in as ...
+     ```
+
+> **💡 Tip — Updating or Resetting Server Data on Wispbyte:**  
+> Server riddles and target lists are saved in `data/guilds/<guild_id>.json` so your active riddle survives bot restarts and Git updates. If you ever want to wipe a server's state from scratch on Wispbyte, delete the corresponding JSON file inside `data/guilds/` (keep `data/roasts.json`!) and click **Restart** in the Console.
 
 ---
 
 ## 🎮 Slash Commands Overview
 
-| Command | Description |
-| :--- | :--- |
-| **`/riddle`** | Displays the interactive riddle card with targeted mentions and hint/answer buttons. |
-| **`/answer <réponse>`** | Submits a riddle answer directly via Slash command (private/ephemeral). |
-| **`/riddle_set <texte> <réponse> <définition> <indicateurs> <fodder>`** | *(Admin)* Configures a new riddle, its answer, and its clues. |
-| **`/riddle_edit [définition] [indicateurs] [fodder] [texte] [réponse]`** | *(Admin)* Partially edits clues or riddle text and updates buttons live. |
-| **`/spy add @Membre`** | Adds a user to the riddle target list. |
-| **`/spy remove @Membre`** | Removes a user from the target list. |
-| **`/spy list`** | Lists all currently targeted users. |
-| **`/spy clear`** | Clears the target list for the current server. |
-| **`/roast @Membre`** | Sends a randomized humorous punchline to a friend. |
-| **`/help`** | Displays the interactive bot guide and command help. |
-| **`/ping`** | Displays bot latency and API connectivity. |
+| Command | Permission | Description |
+| :--- | :--- | :--- |
+| **`/riddle`** | Everyone | Displays the interactive riddle card with targeted mentions and clue/answer buttons. |
+| **`/answer <réponse>`** | Everyone | Submits a riddle answer directly via Slash command (private/ephemeral). |
+| **`/riddle_set <texte> <réponse> <définition> <indicateurs> <fodder>`** | Manage Messages | Configures a new riddle, its secret answer, and its 3 breakdown clues, updating any active card live. |
+| **`/riddle_edit [définition] [indicateurs] [fodder] [texte] [réponse]`** | Manage Messages | Partially edits one or more clues, the riddle text, or the answer, and refreshes the active riddle card & buttons in real time. |
+| **`/spy add <@Membre>`** | Everyone | Adds a user to the riddle target list for this server. |
+| **`/spy remove <@Membre>`** | Everyone | Removes a user from the target list. |
+| **`/spy list`** | Everyone | Lists all users currently targeted by the active riddle. |
+| **`/spy clear`** | Everyone | Clears the entire target list for the current server. |
+| **`/roast <@Membre>`** | Everyone | Sends a randomized humorous punchline to a friend. |
+| **`/help`** | Everyone | Displays the complete interactive bot guide and command list. |
+| **`/ping`** | Everyone | Displays bot latency and Discord API connectivity status. |
