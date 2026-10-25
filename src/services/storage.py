@@ -37,6 +37,12 @@ class StorageService:
             "riddle_text": config.default_riddle_text,
             "riddle_answer": config.default_riddle_answer,
             "target_user_ids": [],
+            "definition": "",
+            "indicators": "",
+            "fodder": "",
+            "par": 4,
+            "last_channel_id": None,
+            "last_message_id": None,
         }
 
     def _guild_file_path(self, guild_id: int) -> Path:
@@ -55,6 +61,12 @@ class StorageService:
                 data.setdefault("riddle_text", config.default_riddle_text)
                 data.setdefault("riddle_answer", config.default_riddle_answer)
                 data.setdefault("target_user_ids", [])
+                data.setdefault("definition", "")
+                data.setdefault("indicators", "")
+                data.setdefault("fodder", "")
+                data.setdefault("par", 4)
+                data.setdefault("last_channel_id", None)
+                data.setdefault("last_message_id", None)
                 return data
         except Exception as e:
             logger.error("Failed to read data for guild %s: %s", guild_id, e)
@@ -90,13 +102,63 @@ class StorageService:
                 data = self._cache[guild_id]
                 await asyncio.to_thread(self._write_guild_file_sync, guild_id, data)
 
-    async def set_riddle(self, guild_id: int, text: str, answer: str) -> None:
-        """Sets a new riddle and answer for the specified guild."""
+    async def set_riddle(
+        self,
+        guild_id: int,
+        text: str,
+        answer: str,
+        definition: str = "",
+        indicators: str = "",
+        fodder: str = "",
+        par: int = 4,
+    ) -> None:
+        """Sets a new riddle, hints, and par for the specified guild."""
         data = await self.get_guild_data(guild_id)
         data["riddle_text"] = text.strip()
         data["riddle_answer"] = answer.strip()
+        data["definition"] = definition.strip()
+        data["indicators"] = indicators.strip()
+        data["fodder"] = fodder.strip()
+        data["par"] = par
         await self.save_guild_data(guild_id)
         logger.info("Updated riddle for guild %s", guild_id)
+
+    async def edit_riddle(
+        self,
+        guild_id: int,
+        text: str | None = None,
+        answer: str | None = None,
+        definition: str | None = None,
+        indicators: str | None = None,
+        fodder: str | None = None,
+        par: int | None = None,
+    ) -> dict[str, Any]:
+        """Partially updates specified fields of the riddle for the specified guild."""
+        data = await self.get_guild_data(guild_id)
+        if text is not None:
+            data["riddle_text"] = text.strip()
+        if answer is not None:
+            data["riddle_answer"] = answer.strip()
+        if definition is not None:
+            data["definition"] = definition.strip()
+        if indicators is not None:
+            data["indicators"] = indicators.strip()
+        if fodder is not None:
+            data["fodder"] = fodder.strip()
+        if par is not None:
+            data["par"] = par
+        await self.save_guild_data(guild_id)
+        logger.info("Partially edited riddle for guild %s", guild_id)
+        return data
+
+    async def set_last_riddle_message(
+        self, guild_id: int, channel_id: int, message_id: int
+    ) -> None:
+        """Stores the location of the latest riddle message for live updates."""
+        data = await self.get_guild_data(guild_id)
+        data["last_channel_id"] = channel_id
+        data["last_message_id"] = message_id
+        await self.save_guild_data(guild_id)
 
     async def get_targets(self, guild_id: int) -> set[int]:
         """Returns the set of targeted user IDs."""

@@ -30,6 +30,9 @@ jobs:
       - name: Syntax and bytecode compilation
         run: uv run python -m py_compile main.py bot.py src/bot.py src/config.py src/services/storage.py src/services/roast_service.py src/ui/riddle_views.py src/cogs/general.py src/cogs/riddle.py src/cogs/spy.py src/cogs/roast.py
 
+      - name: Run unit tests
+        run: uv run python -m unittest discover tests
+
       - name: Component import & sanity check
         env:
           DISCORD_TOKEN: "mock_ci_token_for_validation"
