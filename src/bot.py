@@ -30,9 +30,9 @@ class RiddleBot(commands.Bot):
         intents.message_content = True
 
         super().__init__(
-            command_prefix=commands.when_mentioned_or(config.command_prefix),
+            command_prefix=commands.when_mentioned,
             intents=intents,
-            help_command=None,  # Handled by custom /help in GeneralCog
+            help_command=None,
         )
 
         self.storage = StorageService()
@@ -78,24 +78,6 @@ class RiddleBot(commands.Bot):
             name="/riddle • /help",
         )
         await self.change_presence(activity=activity, status=discord.Status.online)
-
-    async def on_command_error(
-        self, ctx: commands.Context, error: commands.CommandError
-    ) -> None:
-        """Handles errors from prefix / hybrid command invocations."""
-        if isinstance(error, commands.CommandNotFound):
-            return  # Ignore unknown prefix commands silently
-
-        if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(f"⚠️ Argument manquant pour la commande `{ctx.command.name}`.")
-            return
-
-        if isinstance(error, commands.MissingPermissions):
-            await ctx.send("❌ Vous n'avez pas les permissions nécessaires pour exécuter cette commande.")
-            return
-
-        logger.error("Error in command %s: %s", ctx.command, error, exc_info=True)
-        await ctx.send("⚠️ Une erreur inattendue est survenue lors de l'exécution de cette commande.")
 
     async def on_app_command_error(
         self, interaction: discord.Interaction, error: app_commands.AppCommandError

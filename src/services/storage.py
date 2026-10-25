@@ -12,7 +12,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from src.config import GUILDS_DIR, LEGACY_DATA_FILE, config
+from src.config import GUILDS_DIR, config
 
 logger = logging.getLogger("riddlebot.storage")
 
@@ -25,37 +25,19 @@ class StorageService:
         self.guilds_dir.mkdir(parents=True, exist_ok=True)
         self._locks: dict[int, asyncio.Lock] = {}
         self._cache: dict[int, dict[str, Any]] = {}
-        self._legacy_template: dict[str, Any] | None = None
 
     def _get_lock(self, guild_id: int) -> asyncio.Lock:
         if guild_id not in self._locks:
             self._locks[guild_id] = asyncio.Lock()
         return self._locks[guild_id]
 
-    def _load_legacy_template(self) -> dict[str, Any]:
-        """Loads data from the old single-file data.json if present."""
-        if self._legacy_template is not None:
-            return self._legacy_template
-
-        template = {
+    def _create_default_guild_data(self) -> dict[str, Any]:
+        """Creates an empty state dictionary for a new guild."""
+        return {
             "riddle_text": config.default_riddle_text,
             "riddle_answer": config.default_riddle_answer,
             "target_user_ids": [],
         }
-
-        if LEGACY_DATA_FILE.exists():
-            try:
-                with open(LEGACY_DATA_FILE, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    template["riddle_text"] = data.get("riddle_text", template["riddle_text"])
-                    template["riddle_answer"] = data.get("riddle_answer", template["riddle_answer"])
-                    template["target_user_ids"] = list(data.get("target_user_ids", []))
-                    logger.info("Migrated legacy template from data.json")
-            except Exception as e:
-                logger.warning("Could not read legacy data.json: %s", e)
-
-        self._legacy_template = template
-        return self._legacy_template
 
     def _guild_file_path(self, guild_id: int) -> Path:
         return self.guilds_dir / f"{guild_id}.json"
@@ -63,8 +45,7 @@ class StorageService:
     def _read_guild_file_sync(self, guild_id: int) -> dict[str, Any]:
         path = self._guild_file_path(guild_id)
         if not path.exists():
-            default_data = self._load_legacy_template().copy()
-            default_data["target_user_ids"] = list(default_data.get("target_user_ids", []))
+            default_data = self._create_default_guild_data()
             self._write_guild_file_sync(guild_id, default_data)
             return default_data
 
@@ -77,11 +58,7 @@ class StorageService:
                 return data
         except Exception as e:
             logger.error("Failed to read data for guild %s: %s", guild_id, e)
-            return {
-                "riddle_text": config.default_riddle_text,
-                "riddle_answer": config.default_riddle_answer,
-                "target_user_ids": [],
-            }
+            return self._create_default_guild_data()
 
     def _write_guild_file_sync(self, guild_id: int, data: dict[str, Any]) -> None:
         path = self._guild_file_path(guild_id)

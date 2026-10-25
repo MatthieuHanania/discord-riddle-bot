@@ -41,6 +41,14 @@ class RiddleAnswerModal(discord.ui.Modal, title="🧩 Proposer une réponse"):
         user_id = interaction.user.id
         raw_answer = self.answer_input.value
 
+        guild_data = await self.bot.storage.get_guild_data(guild_id)
+        if not str(guild_data.get("riddle_text", "")).strip() or not str(guild_data.get("riddle_answer", "")).strip():
+            await interaction.response.send_message(
+                "⚠️ **Aucune énigme n'est active actuellement sur ce serveur.**",
+                ephemeral=True,
+            )
+            return
+
         targets = await self.bot.storage.get_targets(guild_id)
         if user_id not in targets:
             await interaction.response.send_message(
@@ -111,6 +119,15 @@ class RiddleView(discord.ui.View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ) -> None:
         """Opens the answer modal for the interacting user."""
+        if interaction.guild_id:
+            guild_data = await self.bot.storage.get_guild_data(interaction.guild_id)
+            if not str(guild_data.get("riddle_text", "")).strip() or not str(guild_data.get("riddle_answer", "")).strip():
+                await interaction.response.send_message(
+                    "⚠️ Aucune énigme n'est active actuellement sur ce serveur.",
+                    ephemeral=True,
+                )
+                return
+
         modal = RiddleAnswerModal(self.bot)
         await interaction.response.send_modal(modal)
 

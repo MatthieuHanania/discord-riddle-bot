@@ -23,20 +23,33 @@ class RiddleCog(commands.Cog, name="Énigme"):
     def __init__(self, bot: RiddleBot) -> None:
         self.bot = bot
 
-    @commands.hybrid_command(
+    @app_commands.command(
         name="riddle",
-        aliases=["enigme"],
         description="Affiche l'énigme active et notifie les joueurs ciblés.",
     )
-    async def riddle_command(self, ctx: commands.Context) -> None:
+    async def riddle_command(self, interaction: discord.Interaction) -> None:
         """Affiche la carte interactive de l'énigme avec bouton de réponse."""
-        if not ctx.guild:
-            await ctx.send("❌ Cette commande ne peut être utilisée que dans un serveur.")
+        if not interaction.guild_id:
+            await interaction.response.send_message(
+                "❌ Cette commande ne peut être utilisée que dans un serveur.", ephemeral=True
+            )
             return
 
-        guild_data = await self.bot.storage.get_guild_data(ctx.guild.id)
-        riddle_text = guild_data.get("riddle_text", "Aucune énigme configurée.")
+        guild_data = await self.bot.storage.get_guild_data(interaction.guild_id)
+        riddle_text = str(guild_data.get("riddle_text", "")).strip()
         targets = set(guild_data.get("target_user_ids", []))
+
+        if not riddle_text:
+            embed = discord.Embed(
+                title="🧩 Aucune énigme active",
+                description=(
+                    "Il n'y a aucune énigme configurée pour le moment sur ce serveur.\n\n"
+                    "💡 Un gestionnaire peut en définir une avec la commande `/riddle_set` !"
+                ),
+                color=discord.Color.orange(),
+            )
+            await interaction.response.send_message(embed=embed)
+            return
 
         embed = discord.Embed(
             title="🧩 Énigme en cours",
@@ -63,10 +76,7 @@ class RiddleCog(commands.Cog, name="Énigme"):
         )
 
         view = RiddleView(self.bot)
-        if ctx.interaction:
-            await ctx.interaction.response.send_message(embed=embed, view=view)
-        else:
-            await ctx.send(embed=embed, view=view)
+        await interaction.response.send_message(embed=embed, view=view)
 
     @app_commands.command(
         name="riddle_set",
@@ -100,28 +110,34 @@ class RiddleCog(commands.Cog, name="Énigme"):
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @commands.hybrid_command(
+    @app_commands.command(
         name="answer",
-        aliases=["myanswer", "reponse"],
         description="Soumet une réponse à l'énigme active.",
     )
     @app_commands.describe(reponse="Votre tentative de réponse")
-    async def answer_command(self, ctx: commands.Context, *, reponse: str) -> None:
-        """Permet de répondre via une commande slash ou par préfixe."""
-        if not ctx.guild:
-            await ctx.send("❌ Cette commande ne peut être utilisée que dans un serveur.")
+    async def answer_command(self, interaction: discord.Interaction, reponse: str) -> None:
+        """Permet de répondre via une commande slash privée."""
+        if not interaction.guild_id:
+            await interaction.response.send_message(
+                "❌ Cette commande ne peut être utilisée que dans un serveur.", ephemeral=True
+            )
             return
 
-        guild_id = ctx.guild.id
-        user_id = ctx.author.id
+        guild_id = interaction.guild_id
+        user_id = interaction.user.id
+
+        guild_data = await self.bot.storage.get_guild_data(guild_id)
+        if not str(guild_data.get("riddle_text", "")).strip() or not str(guild_data.get("riddle_answer", "")).strip():
+            await interaction.response.send_message(
+                "⚠️ Aucune énigme n'est actuellement active sur ce serveur.", ephemeral=True
+            )
+            return
 
         targets = await self.bot.storage.get_targets(guild_id)
         if user_id not in targets:
-            msg = "⚠️ Vous ne faites pas partie des joueurs ciblés par cette énigme !"
-            if ctx.interaction:
-                await ctx.interaction.response.send_message(msg, ephemeral=True)
-            else:
-                await ctx.send(msg)
+            await interaction.response.send_message(
+                "⚠️ Vous ne faites pas partie des joueurs ciblés par cette énigme !", ephemeral=True
+            )
             return
 
         is_correct, remaining_count, _ = await self.bot.storage.check_answer(
@@ -129,35 +145,27 @@ class RiddleCog(commands.Cog, name="Énigme"):
         )
 
         if is_correct:
-            if ctx.interaction:
-                await ctx.interaction.response.send_message(
-                    "🎉 **Bravo tu as trouvé !**", ephemeral=True
-                )
-            else:
-                try:
-                    await ctx.message.delete()
-                except discord.HTTPException:
-                    pass
+            await interaction.response.send_message(
+                "🎉 **Bravo tu as trouvé !**", ephemeral=True
+            )
 
-            if remaining_count > 0:
-                remaining_targets = await self.bot.storage.get_targets(guild_id)
-                mentions = " ".join(f"<@{uid}>" for uid in remaining_targets)
-                await ctx.send(
-                    f"🎉 {ctx.author.mention} a trouvé la réponse !\n"
-                    f"👥 **Joueurs restants ({remaining_count}) :** {mentions}"
-                )
-            else:
-                await ctx.send(
-                    f"🎉 {ctx.author.mention} a trouvé la réponse !\n"
-                    "🏆 **Félicitations, tous les joueurs ciblés ont trouvé !**"
-                )
+            if interaction.channel and hasattr(interaction.channel, "send"):
+                if remaining_count > 0:
+                    remaining_targets = await self.bot.storage.get_targets(guild_id)
+                    mentions = " ".join(f"<@{uid}>" for uid in remaining_targets)
+                    await interaction.channel.send(
+                        f"🎉 {interaction.user.mention} a trouvé la réponse !\n"
+                        f"👥 **Joueurs restants ({remaining_count}) :** {mentions}"
+                    )
+                else:
+                    await interaction.channel.send(
+                        f"🎉 {interaction.user.mention} a trouvé la réponse !\n"
+                        "🏆 **Félicitations, tous les joueurs ciblés ont trouvé !**"
+                    )
         else:
-            if ctx.interaction:
-                await ctx.interaction.response.send_message(
-                    "❌ Cherche encore !", ephemeral=True
-                )
-            else:
-                await ctx.send("cherche encore")
+            await interaction.response.send_message(
+                "❌ Cherche encore !", ephemeral=True
+            )
 
 
 async def setup(bot: RiddleBot) -> None:
