@@ -56,15 +56,9 @@ class RiddleBot(commands.Bot):
         # Register tree error handler
         self.tree.on_error = self.on_app_command_error
 
-        # Sync Slash Commands (App Commands)
-        if config.dev_guild_id:
-            dev_guild = discord.Object(id=config.dev_guild_id)
-            self.tree.copy_global_to(guild=dev_guild)
-            await self.tree.sync(guild=dev_guild)
-            logger.info("Slash commands synced INSTANTLY to dev guild: %s", config.dev_guild_id)
-        else:
-            await self.tree.sync()
-            logger.info("Slash commands synced globally.")
+        # Sync Slash Commands globally
+        synced = await self.tree.sync()
+        logger.info("Slash commands synced globally: %d commands", len(synced))
 
     async def on_ready(self) -> None:
         """Fires when the bot connection is established."""

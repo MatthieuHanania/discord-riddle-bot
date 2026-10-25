@@ -7,17 +7,19 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A modern, scalable Discord bot built with **Python 3.12+**, **`discord.py` 2.x**, and managed with **`uv`**.  
-Features **Slash Commands (`/`)**, **Interactive Buttons & Modal pop-ups** (anti-cheat answer submissions), **guild-isolated state persistence**, and **modular Cogs architecture**.
+Features **Slash Commands (`/`)**, **Interactive Buttons & Modal pop-ups** (anti-cheat answer submissions and spoiler-free hints), **guild-isolated state persistence**, and **modular Cogs architecture**.
 
 ---
 
 ## ✨ Features
 
 - 🧩 **Interactive Riddles (`/riddle`):**
-  - Sends a styled card with the active riddle and tags the targeted players.
+  - Sends a styled card with the active riddle, targeted players, and par.
   - **"🔑 Proposer une réponse" Button:** Opens a private Discord Modal window.
-  - **Anti-Cheat / Anti-Spoiler:** Guesses submitted through the modal are validated privately with ephemeral responses so no one can copy or leak answers!
-  - **Dynamic Configuration (`/riddle_set`):** Change the riddle text and secret answer directly via Slash command without touching JSON files or rebooting!
+  - **"📖 Définition", "🔍 Indicateurs", "🧩 Fodder" Buttons:** Players can reveal breakdown clues privately via ephemeral messages without spoiling the puzzle for others!
+  - **Dynamic Real-Time Clue Updates (`/riddle_edit`):** Edit clues (definition, indicator, fodder, par) at any time. Active riddle cards and button availability update live in the channel!
+  - **Anti-Cheat / Anti-Spoiler:** Guesses submitted through the modal and clue buttons are validated privately with ephemeral responses so no one can copy or leak answers!
+  - **Dynamic Configuration (`/riddle_set`):** Configure the riddle text, secret answer, definition, indicators, fodder, and par directly via Slash command without touching JSON files or rebooting!
 - 🎯 **Target Player Management (`/spy`):**
   - Add, remove, list, or clear targeted players per server (`/spy add`, `/spy remove`, `/spy list`, `/spy clear`).
   - Isolated per server: each Discord server has its own riddle and target list!
@@ -50,15 +52,15 @@ BotDiscord/
 │   ├── bot.py                  # Custom RiddleBot subclass (setup_hook & tree sync)
 │   │
 │   ├── services/               # Asynchronous service layer
-│   │   ├── storage.py          # Guild-isolated async storage
+│   │   ├── storage.py          # Guild-isolated async storage (riddles, hints, targets)
 │   │   └── roast_service.py    # Punchlines & roasts manager
 │   │
 │   ├── ui/                     # Discord UI components
-│   │   └── riddle_views.py     # Persistent Buttons & Modal popups
+│   │   └── riddle_views.py     # Persistent Buttons (hints & answers) & Modal popups
 │   │
 │   └── cogs/                   # Modular feature extensions
 │       ├── general.py          # /help, /ping, bot status
-│       ├── riddle.py           # /riddle, /answer, /riddle_set
+│       ├── riddle.py           # /riddle, /answer, /riddle_set, /riddle_edit
 │       ├── spy.py              # /spy (add, remove, list, clear)
 │       └── roast.py            # /roast
 │
@@ -122,9 +124,10 @@ uv run main.py
 
 | Command | Description |
 | :--- | :--- |
-| **`/riddle`** | Displays the interactive riddle card with targeted mentions and answer button. |
+| **`/riddle`** | Displays the interactive riddle card with par, targeted mentions, and hint/answer buttons. |
 | **`/answer <réponse>`** | Submits a riddle answer directly via Slash command (private/ephemeral). |
-| **`/riddle_set <texte> <réponse>`** | *(Admin)* Configures a new riddle and secret answer. |
+| **`/riddle_set <texte> <réponse> <définition> <indicateurs> <fodder> [par]`** | *(Admin)* Configures a new riddle, its answer, clues, and par. |
+| **`/riddle_edit [définition] [indicateurs] [fodder] [par] [texte] [réponse]`** | *(Admin)* Partially edits clues, par, or riddle text and updates buttons live. |
 | **`/spy add @Membre`** | Adds a user to the riddle target list. |
 | **`/spy remove @Membre`** | Removes a user from the target list. |
 | **`/spy list`** | Lists all currently targeted users. |

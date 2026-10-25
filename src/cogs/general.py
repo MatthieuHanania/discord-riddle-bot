@@ -40,9 +40,10 @@ class GeneralCog(commands.Cog, name="Général"):
             name="🧩 1. Énigmes interactives",
             value=(
                 "• `/riddle` : Affiche l'énigme active et notifie les joueurs ciblés.\n"
-                "• **Bouton 'Proposer une réponse'** : Ouvre un pop-up privé sans spoiler le salon !\n"
+                "• **Boutons interactifs** : Définition, Indicateurs, Fodder et Réponse discrète !\n"
                 "• `/answer <texte>` : Soumet une réponse directement par commande.\n"
-                "• `/riddle_set <texte> <réponse>` : *(Admin)* Configure une nouvelle énigme."
+                "• `/riddle_set` : Configure une énigme complète avec indices et par.\n"
+                "• `/riddle_edit` : Modifie dynamiquement les indices (fodder, indicateurs, etc.)."
             ),
             inline=False,
         )
@@ -65,8 +66,11 @@ class GeneralCog(commands.Cog, name="Général"):
         )
 
         embed.add_field(
-            name="⚙️ 4. Diagnostic",
-            value="• `/ping` : Affiche la latence du bot et l'état de connexion.",
+            name="⚙️ 4. Diagnostic & Admin",
+            value=(
+                "• `/ping` : Affiche la latence du bot et l'état de connexion.\n"
+                "• `!sync` : Force la synchronisation des commandes slash."
+            ),
             inline=False,
         )
 
@@ -95,6 +99,13 @@ class GeneralCog(commands.Cog, name="Général"):
             await ctx.interaction.response.send_message(embed=embed)
         else:
             await ctx.send(embed=embed)
+
+    @commands.command(name="sync")
+    @commands.has_permissions(manage_messages=True)
+    async def sync_command(self, ctx: commands.Context) -> None:
+        """Force la synchronisation des commandes slash."""
+        synced = await self.bot.tree.sync()
+        await ctx.send(f"✅ **{len(synced)}** commandes slash synchronisées avec succès !")
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
