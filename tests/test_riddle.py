@@ -30,9 +30,9 @@ class TestRiddleStorage(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(data.get("definition"), "")
         self.assertEqual(data.get("indicators"), "")
         self.assertEqual(data.get("fodder"), "")
-        self.assertEqual(data.get("par"), 4)
+        self.assertNotIn("par", data)
 
-    async def test_set_riddle_with_clues_and_par(self) -> None:
+    async def test_set_riddle_with_clues(self) -> None:
         guild_id = 99999
         await self.storage.set_riddle(
             guild_id=guild_id,
@@ -41,7 +41,6 @@ class TestRiddleStorage(unittest.IsolatedAsyncioTestCase):
             definition="9-12",
             indicators="- (deletion) and + (addition)",
             fodder="'12', '55', and 'n'. (substitute)",
-            par=4,
         )
 
         data = await self.storage.get_guild_data(guild_id)
@@ -50,7 +49,6 @@ class TestRiddleStorage(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(data["definition"], "9-12")
         self.assertEqual(data["indicators"], "- (deletion) and + (addition)")
         self.assertEqual(data["fodder"], "'12', '55', and 'n'. (substitute)")
-        self.assertEqual(data["par"], 4)
 
     async def test_edit_riddle_partial_update(self) -> None:
         guild_id = 88888
@@ -61,14 +59,12 @@ class TestRiddleStorage(unittest.IsolatedAsyncioTestCase):
             definition="A fruit",
             indicators="None",
             fodder="appl",
-            par=4,
         )
 
-        # Partially update only fodder and par
+        # Partially update only fodder
         await self.storage.edit_riddle(
             guild_id=guild_id,
             fodder="new fodder letters",
-            par=2,
         )
 
         data = await self.storage.get_guild_data(guild_id)
@@ -77,7 +73,6 @@ class TestRiddleStorage(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(data["definition"], "A fruit")
         self.assertEqual(data["indicators"], "None")
         self.assertEqual(data["fodder"], "new fodder letters")
-        self.assertEqual(data["par"], 2)
 
     async def test_set_last_riddle_message(self) -> None:
         guild_id = 77777
