@@ -25,9 +25,9 @@ Features **Slash Commands (`/`)**, **Interactive Buttons & Modal pop-ups** (anti
   - Isolated per server: each Discord server has its own riddle and target list!
 - 🔥 **Fun & Roasts (`/roast`):**
   - Roasts a friend with a curated collection of punchlines loaded asynchronously from `data/roasts.json`.
-- ⚡ **Hybrid Commands & Mention Support:**
-  - Works with native Slash Commands (`/riddle`, `/help`, etc.).
-  - Still supports mention triggering (`@RiddleBot riddle`) for backwards compatibility.
+- ⚡ **Pure Discord Slash Commands (`/`):**
+  - Native autocomplete and Discord slash command tree integration.
+  - Ephemeral private validation so users cannot cheat or spoil riddles.
 - 🏗️ **Clean Architecture (GitHub Best Practices):**
   - Subclassed `commands.Bot` with asynchronous `setup_hook`.
   - Feature modularity using **Cogs** (`cogs/riddle.py`, `cogs/spy.py`, `cogs/roast.py`, `cogs/general.py`).
@@ -59,7 +59,7 @@ BotDiscord/
 │   │   └── riddle_views.py     # Persistent Buttons (hints & answers) & Modal popups
 │   │
 │   └── cogs/                   # Modular feature extensions
-│       ├── general.py          # /help, /ping, bot status
+│       ├── general.py          # /help, /ping
 │       ├── riddle.py           # /riddle, /answer, /riddle_set, /riddle_edit
 │       ├── spy.py              # /spy (add, remove, list, clear)
 │       └── roast.py            # /roast
@@ -68,8 +68,7 @@ BotDiscord/
 │   ├── guilds/                 # Per-guild JSON state storage
 │   └── roasts.json             # Punchlines list
 │
-├── main.py                     # Main application entry point
-└── bot.py                      # Backward-compatible runner
+└── main.py                     # Main application entry point
 ```
 
 ---
@@ -102,11 +101,10 @@ DISCORD_TOKEN=your_secret_discord_bot_token
 1. Visit the [Discord Developer Portal](https://discord.com/developers/applications).
 2. Select your Application, then go to the **Bot** tab.
 3. Retrieve your token via **Reset Token** (paste it into `.env`).
-4. Under **Privileged Gateway Intents**, enable **`MESSAGE CONTENT INTENT`** (allows mention-based commands).
-5. In **OAuth2 > URL Generator**:
+4. In **OAuth2 > URL Generator**:
    - Scopes: `bot`, `applications.commands`
    - Permissions: `Send Messages`, `Read Message History`, `View Channels`, `Embed Links`, `Manage Messages` (optional, for riddle_set).
-6. Invite the bot to your server using the generated URL.
+5. Invite the bot to your server using the generated URL.
 
 ---
 
@@ -116,7 +114,6 @@ Run the bot with `uv`:
 ```bash
 uv run main.py
 ```
-*(Or `uv run bot.py`)*
 
 ---
 

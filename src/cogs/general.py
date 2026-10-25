@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-import discord
+from discord import app_commands
 from discord.ext import commands
 
 if TYPE_CHECKING:
@@ -20,18 +20,17 @@ class GeneralCog(commands.Cog, name="Général"):
     def __init__(self, bot: RiddleBot) -> None:
         self.bot = bot
 
-    @commands.hybrid_command(
+    @app_commands.command(
         name="help",
-        aliases=["aide", "guide", "hello", "info"],
         description="Affiche le guide complet du bot et la liste des commandes.",
     )
-    async def help_command(self, ctx: commands.Context) -> None:
+    async def help_command(self, interaction: discord.Interaction) -> None:
         """Affiche le panneau d'aide détaillé du bot."""
         embed = discord.Embed(
             title="🤖 **RiddleBot — Guide & Commandes**",
             description=(
                 "Bienvenue sur **RiddleBot** ! Un bot moderne d'énigmes interactives et de divertissement.\n"
-                "Vous pouvez utiliser les commandes slash (`/`) ou mentionner le bot."
+                "Toutes les fonctionnalités s'utilisent via les commandes slash (`/`)."
             ),
             color=discord.Color.blue(),
         )
@@ -78,16 +77,13 @@ class GeneralCog(commands.Cog, name="Général"):
             text="RiddleBot • Développé en Python moderne avec discord.py et uv 🚀"
         )
 
-        if ctx.interaction:
-            await ctx.interaction.response.send_message(embed=embed)
-        else:
-            await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
 
-    @commands.hybrid_command(
+    @app_commands.command(
         name="ping",
         description="Vérifie la latence et l'état du bot.",
     )
-    async def ping_command(self, ctx: commands.Context) -> None:
+    async def ping_command(self, interaction: discord.Interaction) -> None:
         """Vérifie la latence de l'API Discord."""
         latency_ms = round(self.bot.latency * 1000)
         embed = discord.Embed(
@@ -95,10 +91,7 @@ class GeneralCog(commands.Cog, name="Général"):
             description=f"Latence de l'API Discord : **`{latency_ms} ms`**",
             color=discord.Color.green() if latency_ms < 150 else discord.Color.orange(),
         )
-        if ctx.interaction:
-            await ctx.interaction.response.send_message(embed=embed)
-        else:
-            await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
 
     @commands.command(name="sync")
     @commands.has_permissions(manage_messages=True)
@@ -119,7 +112,7 @@ class GeneralCog(commands.Cog, name="Général"):
             and len(message.content.strip().split()) == 1
         ):
             await message.channel.send(
-                f"👋 Bonjour {message.author.mention} ! Utilisez `/help` ou tapez `@{self.bot.user.name} help` pour voir le guide complet !"
+                f"👋 Bonjour {message.author.mention} ! Utilisez `/help` pour voir le guide complet !"
             )
 
 

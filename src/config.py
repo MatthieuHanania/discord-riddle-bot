@@ -15,7 +15,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 GUILDS_DIR = DATA_DIR / "guilds"
 ROASTS_FILE = DATA_DIR / "roasts.json"
-LEGACY_DATA_FILE = BASE_DIR / "data.json"
 
 # Load local environment variables
 load_dotenv(dotenv_path=BASE_DIR / ".env")
@@ -30,14 +29,11 @@ class Config:
         default_factory=lambda: int(os.getenv("DEV_GUILD_ID")) if os.getenv("DEV_GUILD_ID") else None
     )
     default_riddle_text: str = field(
-        default_factory=lambda: os.getenv(
-            "RIDDLE_TEXT", "Five greeks reach the last third of Instagram (9)"
-        )
+        default_factory=lambda: os.getenv("RIDDLE_TEXT", "")
     )
     default_riddle_answer: str = field(
-        default_factory=lambda: os.getenv("RIDDLE_ANSWER", "pentagram")
+        default_factory=lambda: os.getenv("RIDDLE_ANSWER", "")
     )
-    command_prefix: str = field(default_factory=lambda: os.getenv("COMMAND_PREFIX", "!"))
 
     def validate(self) -> None:
         """Validates critical settings."""
