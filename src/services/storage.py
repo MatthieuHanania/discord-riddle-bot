@@ -40,7 +40,6 @@ class StorageService:
             "definition": "",
             "indicators": "",
             "fodder": "",
-            "par": 4,
             "last_channel_id": None,
             "last_message_id": None,
         }
@@ -64,9 +63,9 @@ class StorageService:
                 data.setdefault("definition", "")
                 data.setdefault("indicators", "")
                 data.setdefault("fodder", "")
-                data.setdefault("par", 4)
                 data.setdefault("last_channel_id", None)
                 data.setdefault("last_message_id", None)
+                data.pop("par", None)
                 return data
         except Exception as e:
             logger.error("Failed to read data for guild %s: %s", guild_id, e)
@@ -110,16 +109,14 @@ class StorageService:
         definition: str = "",
         indicators: str = "",
         fodder: str = "",
-        par: int = 4,
     ) -> None:
-        """Sets a new riddle, hints, and par for the specified guild."""
+        """Sets a new riddle and hints for the specified guild."""
         data = await self.get_guild_data(guild_id)
         data["riddle_text"] = text.strip()
         data["riddle_answer"] = answer.strip()
         data["definition"] = definition.strip()
         data["indicators"] = indicators.strip()
         data["fodder"] = fodder.strip()
-        data["par"] = par
         await self.save_guild_data(guild_id)
         logger.info("Updated riddle for guild %s", guild_id)
 
@@ -131,7 +128,6 @@ class StorageService:
         definition: str | None = None,
         indicators: str | None = None,
         fodder: str | None = None,
-        par: int | None = None,
     ) -> dict[str, Any]:
         """Partially updates specified fields of the riddle for the specified guild."""
         data = await self.get_guild_data(guild_id)
@@ -145,8 +141,6 @@ class StorageService:
             data["indicators"] = indicators.strip()
         if fodder is not None:
             data["fodder"] = fodder.strip()
-        if par is not None:
-            data["par"] = par
         await self.save_guild_data(guild_id)
         logger.info("Partially edited riddle for guild %s", guild_id)
         return data

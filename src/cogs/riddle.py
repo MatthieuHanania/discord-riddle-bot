@@ -27,18 +27,11 @@ class RiddleCog(commands.Cog, name="Énigme"):
         """Constructs the standard riddle embed card from guild state."""
         riddle_text = guild_data.get("riddle_text", "Aucune énigme configurée.")
         targets = set(guild_data.get("target_user_ids", []))
-        par = guild_data.get("par", 4)
 
         embed = discord.Embed(
             title="🧩 Énigme en cours",
             description=f">>> ### \"{riddle_text}\"",
             color=discord.Color.blurple(),
-        )
-
-        embed.add_field(
-            name="⛳ Par",
-            value=f"**{par}** essai{'s' if par > 1 else ''}",
-            inline=True,
         )
 
         if targets:
@@ -124,7 +117,7 @@ class RiddleCog(commands.Cog, name="Énigme"):
 
     @app_commands.command(
         name="riddle_set",
-        description="Définit une nouvelle énigme avec sa définition, ses indicateurs, son fodder et son par.",
+        description="Définit une nouvelle énigme avec sa définition, ses indicateurs et son fodder.",
     )
     @app_commands.describe(
         texte="L'énoncé de l'énigme à afficher publiquement",
@@ -132,7 +125,6 @@ class RiddleCog(commands.Cog, name="Énigme"):
         definition="La définition du mot à deviner (ex: 9-12)",
         indicateurs="Les indicateurs / opérations (ex: - (deletion) and + (addition))",
         fodder="Le matériau / lettres de base (ex: '12', '55', and 'n'. (substitute))",
-        par="Nombre moyen d'essais attendu par joueur (défaut : 4)",
     )
     @app_commands.checks.has_permissions(manage_messages=True)
     async def set_riddle(
@@ -143,7 +135,6 @@ class RiddleCog(commands.Cog, name="Énigme"):
         definition: str,
         indicateurs: str,
         fodder: str,
-        par: app_commands.Range[int, 1, 100] = 4,
     ) -> None:
         """Permet de configurer une nouvelle énigme et ses indices sans modifier de fichier JSON."""
         if not interaction.guild_id:
@@ -159,7 +150,6 @@ class RiddleCog(commands.Cog, name="Énigme"):
             definition=definition,
             indicators=indicateurs,
             fodder=fodder,
-            par=par,
         )
 
         refreshed = await self.refresh_active_message(interaction.guild_id)
@@ -173,7 +163,6 @@ class RiddleCog(commands.Cog, name="Énigme"):
                 f"📖 **Définition :** {definition}\n"
                 f"🔍 **Indicateurs :** {indicateurs}\n"
                 f"🧩 **Fodder :** {fodder}\n"
-                f"⛳ **Par :** {par} essai{'s' if par > 1 else ''}\n"
                 f"{refresh_note}\n\n"
                 f"*(Visible uniquement par vous)*"
             ),
@@ -189,7 +178,6 @@ class RiddleCog(commands.Cog, name="Énigme"):
         definition="Nouvelle définition du mot à deviner",
         indicateurs="Nouveaux indicateurs / opérations",
         fodder="Nouveau fodder / lettres de base",
-        par="Nouveau par (nombre moyen d'essais attendu)",
         texte="Nouvel énoncé de l'énigme",
         reponse="Nouvelle réponse secrète",
     )
@@ -200,7 +188,6 @@ class RiddleCog(commands.Cog, name="Énigme"):
         definition: str | None = None,
         indicateurs: str | None = None,
         fodder: str | None = None,
-        par: app_commands.Range[int, 1, 100] | None = None,
         texte: str | None = None,
         reponse: str | None = None,
     ) -> None:
@@ -211,21 +198,20 @@ class RiddleCog(commands.Cog, name="Énigme"):
             )
             return
 
-        if all(v is None for v in [definition, indicateurs, fodder, par, texte, reponse]):
+        if all(v is None for v in [definition, indicateurs, fodder, texte, reponse]):
             await interaction.response.send_message(
                 "⚠️ Veuillez renseigner au moins un champ à modifier (définition, indicateurs, fodder, etc.).",
                 ephemeral=True,
             )
             return
 
-        data = await self.bot.storage.edit_riddle(
+        await self.bot.storage.edit_riddle(
             interaction.guild_id,
             text=texte,
             answer=reponse,
             definition=definition,
             indicators=indicateurs,
             fodder=fodder,
-            par=par,
         )
 
         refreshed = await self.refresh_active_message(interaction.guild_id)
@@ -242,8 +228,6 @@ class RiddleCog(commands.Cog, name="Énigme"):
             details.append(f"🔍 **Indicateurs :** {indicateurs}")
         if fodder is not None:
             details.append(f"🧩 **Fodder :** {fodder}")
-        if par is not None:
-            details.append(f"⛳ **Par :** {par} essai{'s' if par > 1 else ''}")
 
         embed = discord.Embed(
             title="✏️ Énigme mise à jour !",

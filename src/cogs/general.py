@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+import discord
 from discord import app_commands
 from discord.ext import commands
 
@@ -41,7 +42,7 @@ class GeneralCog(commands.Cog, name="Général"):
                 "• `/riddle` : Affiche l'énigme active et notifie les joueurs ciblés.\n"
                 "• **Boutons interactifs** : Définition, Indicateurs, Fodder et Réponse discrète !\n"
                 "• `/answer <texte>` : Soumet une réponse directement par commande.\n"
-                "• `/riddle_set` : Configure une énigme complète avec indices et par.\n"
+                "• `/riddle_set` : Configure une énigme complète avec ses indices.\n"
                 "• `/riddle_edit` : Modifie dynamiquement les indices (fodder, indicateurs, etc.)."
             ),
             inline=False,
