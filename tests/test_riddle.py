@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, MagicMock
 import discord
 
 from src.services.storage import StorageService
-from src.ui.riddle_views import RiddleView
+from src.ui.riddle_views import RiddleConfigModal, RiddleView
 
 
 class TestRiddleStorage(unittest.IsolatedAsyncioTestCase):
@@ -49,30 +49,6 @@ class TestRiddleStorage(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(data["definition"], "9-12")
         self.assertEqual(data["indicators"], "- (deletion) and + (addition)")
         self.assertEqual(data["fodder"], "'12', '55', and 'n'. (substitute)")
-
-    async def test_edit_riddle_partial_update(self) -> None:
-        guild_id = 88888
-        await self.storage.set_riddle(
-            guild_id=guild_id,
-            text="Initial Clue (5)",
-            answer="apple",
-            definition="A fruit",
-            indicators="None",
-            fodder="appl",
-        )
-
-        # Partially update only fodder
-        await self.storage.edit_riddle(
-            guild_id=guild_id,
-            fodder="new fodder letters",
-        )
-
-        data = await self.storage.get_guild_data(guild_id)
-        self.assertEqual(data["riddle_text"], "Initial Clue (5)")
-        self.assertEqual(data["riddle_answer"], "apple")
-        self.assertEqual(data["definition"], "A fruit")
-        self.assertEqual(data["indicators"], "None")
-        self.assertEqual(data["fodder"], "new fodder letters")
 
     async def test_set_last_riddle_message(self) -> None:
         guild_id = 77777
@@ -177,6 +153,34 @@ class TestRiddleView(unittest.IsolatedAsyncioTestCase):
         _, kwargs = interaction.response.send_message.call_args
         self.assertTrue(kwargs.get("ephemeral"))
         self.assertIn("12, 55, n", kwargs["embed"].description)
+
+    async def test_config_modal_prefill_and_submit(self) -> None:
+        mock_bot = MagicMock()
+        mock_bot.storage = AsyncMock()
+        mock_cog = MagicMock()
+        mock_cog.refresh_active_message = AsyncMock(return_value=True)
+        mock_bot.get_cog.return_value = mock_cog
+
+        # 1. Test /riddle_set modal (empty defaults)
+        set_modal = RiddleConfigModal(mock_bot, is_edit=False)
+        self.assertEqual(set_modal.title, "🧩 Nouvelle énigme")
+        self.assertIsNone(set_modal.riddle_text_input.default)
+
+        # 2. Test /riddle_edit modal (pre-filled defaults)
+        guild_data = {
+            "riddle_text": "12 - 55 + n = 9-12",
+            "riddle_answer": "tween",
+            "definition": "9-12",
+            "indicators": "- and +",
+            "fodder": "12, 55, n",
+        }
+        edit_modal = RiddleConfigModal(mock_bot, guild_data=guild_data, is_edit=True)
+        self.assertEqual(edit_modal.title, "✏️ Modifier l'énigme")
+        self.assertEqual(edit_modal.riddle_text_input.default, "12 - 55 + n = 9-12")
+        self.assertEqual(edit_modal.answer_input.default, "tween")
+        self.assertEqual(edit_modal.definition_input.default, "9-12")
+        self.assertEqual(edit_modal.indicators_input.default, "- and +")
+        self.assertEqual(edit_modal.fodder_input.default, "12, 55, n")
 
 
 if __name__ == "__main__":

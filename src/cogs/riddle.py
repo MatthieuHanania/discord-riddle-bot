@@ -9,7 +9,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from src.ui.riddle_views import RiddleView
+from src.ui.riddle_views import RiddleConfigModal, RiddleView
 
 if TYPE_CHECKING:
     from src.bot import RiddleBot
@@ -117,124 +117,42 @@ class RiddleCog(commands.Cog, name="Énigme"):
 
     @app_commands.command(
         name="riddle_set",
-        description="Définit une nouvelle énigme avec sa définition, ses indicateurs et son fodder.",
-    )
-    @app_commands.describe(
-        texte="L'énoncé de l'énigme à afficher publiquement",
-        reponse="Le mot ou la phrase secrète qui valide l'énigme",
-        definition="La définition du mot à deviner (ex: 9-12)",
-        indicateurs="Les indicateurs / opérations (ex: - (deletion) and + (addition))",
-        fodder="Le matériau / lettres de base (ex: '12', '55', and 'n'. (substitute))",
+        description="Ouvre une fenêtre pour définir une nouvelle énigme et ses indices.",
     )
     @app_commands.checks.has_permissions(manage_messages=True)
     async def set_riddle(
         self,
         interaction: discord.Interaction,
-        texte: str,
-        reponse: str,
-        definition: str,
-        indicateurs: str,
-        fodder: str,
     ) -> None:
-        """Permet de configurer une nouvelle énigme et ses indices sans modifier de fichier JSON."""
+        """Ouvre le formulaire pop-up permettant de configurer une nouvelle énigme."""
         if not interaction.guild_id:
             await interaction.response.send_message(
                 "❌ Cette commande doit être utilisée dans un serveur.", ephemeral=True
             )
             return
 
-        await self.bot.storage.set_riddle(
-            interaction.guild_id,
-            text=texte,
-            answer=reponse,
-            definition=definition,
-            indicators=indicateurs,
-            fodder=fodder,
-        )
-
-        refreshed = await self.refresh_active_message(interaction.guild_id)
-        refresh_note = "\n*(La carte de l'énigme affichée a été actualisée en direct !)*" if refreshed else ""
-
-        embed = discord.Embed(
-            title="✅ Nouvelle énigme enregistrée !",
-            description=(
-                f"**Énoncé :**\n>>> {texte}\n\n"
-                f"🤫 **Réponse secrète :** ||`{reponse}`||\n"
-                f"📖 **Définition :** {definition}\n"
-                f"🔍 **Indicateurs :** {indicateurs}\n"
-                f"🧩 **Fodder :** {fodder}\n"
-                f"{refresh_note}\n\n"
-                f"*(Visible uniquement par vous)*"
-            ),
-            color=discord.Color.green(),
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        modal = RiddleConfigModal(self.bot, is_edit=False)
+        await interaction.response.send_modal(modal)
 
     @app_commands.command(
         name="riddle_edit",
-        description="Modifie un ou plusieurs éléments de l'énigme (définition, indicateurs, fodder, etc.).",
-    )
-    @app_commands.describe(
-        definition="Nouvelle définition du mot à deviner",
-        indicateurs="Nouveaux indicateurs / opérations",
-        fodder="Nouveau fodder / lettres de base",
-        texte="Nouvel énoncé de l'énigme",
-        reponse="Nouvelle réponse secrète",
+        description="Ouvre une fenêtre pré-remplie pour modifier l'énigme et ses indices.",
     )
     @app_commands.checks.has_permissions(manage_messages=True)
     async def edit_riddle(
         self,
         interaction: discord.Interaction,
-        definition: str | None = None,
-        indicateurs: str | None = None,
-        fodder: str | None = None,
-        texte: str | None = None,
-        reponse: str | None = None,
     ) -> None:
-        """Permet de modifier unitairement ou collectivement des éléments de l'énigme."""
+        """Ouvre le formulaire pop-up pré-rempli avec les paramètres actuels de l'énigme."""
         if not interaction.guild_id:
             await interaction.response.send_message(
                 "❌ Cette commande doit être utilisée dans un serveur.", ephemeral=True
             )
             return
 
-        if all(v is None for v in [definition, indicateurs, fodder, texte, reponse]):
-            await interaction.response.send_message(
-                "⚠️ Veuillez renseigner au moins un champ à modifier (définition, indicateurs, fodder, etc.).",
-                ephemeral=True,
-            )
-            return
-
-        await self.bot.storage.edit_riddle(
-            interaction.guild_id,
-            text=texte,
-            answer=reponse,
-            definition=definition,
-            indicators=indicateurs,
-            fodder=fodder,
-        )
-
-        refreshed = await self.refresh_active_message(interaction.guild_id)
-        refresh_note = "\n*(La carte de l'énigme affichée et ses boutons ont été actualisés en direct !)*" if refreshed else ""
-
-        details = []
-        if texte is not None:
-            details.append(f"**Énoncé :** >>> {texte}")
-        if reponse is not None:
-            details.append(f"🤫 **Réponse :** ||`{reponse}`||")
-        if definition is not None:
-            details.append(f"📖 **Définition :** {definition}")
-        if indicateurs is not None:
-            details.append(f"🔍 **Indicateurs :** {indicateurs}")
-        if fodder is not None:
-            details.append(f"🧩 **Fodder :** {fodder}")
-
-        embed = discord.Embed(
-            title="✏️ Énigme mise à jour !",
-            description="\n".join(details) + f"\n{refresh_note}\n\n*(Visible uniquement par vous)*",
-            color=discord.Color.teal(),
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        guild_data = await self.bot.storage.get_guild_data(interaction.guild_id)
+        modal = RiddleConfigModal(self.bot, guild_data=guild_data, is_edit=True)
+        await interaction.response.send_modal(modal)
 
     @app_commands.command(
         name="answer",

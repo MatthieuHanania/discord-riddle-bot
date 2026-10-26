@@ -17,8 +17,8 @@ Features **pure Slash Commands (`/`)**, **Interactive Buttons & Modal pop-ups** 
   - Sends a styled card with the active riddle and targeted players (or a clean empty-state prompt if no riddle is configured yet).
   - **"🔑 Proposer une réponse" Button:** Opens a private Discord Modal window to submit guesses discreetly.
   - **"📖 Définition", "🔍 Indicateurs", "🧩 Fodder" Buttons:** Players can reveal breakdown clues privately via ephemeral messages without spoiling the puzzle for others. Buttons automatically enable or disable depending on which clues are configured!
-  - **Dynamic Real-Time Clue Updates (`/riddle_edit`):** Edit clues (`definition`, `indicateurs`, `fodder`), riddle text, or the secret answer individually at any time. The active riddle card and its buttons update live in the Discord channel!
-  - **Dynamic Configuration (`/riddle_set`):** Configure a complete riddle (`texte`, `réponse`, `définition`, `indicateurs`, `fodder`) directly via Slash command without touching JSON files or rebooting.
+  - **Dynamic Real-Time Clue Updates (`/riddle_edit`):** Opens a pre-filled Discord Modal popup displaying all current riddle fields (`Énoncé`, `Réponse`, `Définition`, `Indicateurs`, `Fodder`). Edit any field directly and the active riddle card and its buttons update live in the Discord channel!
+  - **Interactive Configuration (`/riddle_set`):** Opens a clean Discord Modal form to configure a new riddle and its clues without typing long command arguments.
   - **Anti-Cheat / Anti-Spoiler:** Guesses submitted through the modal, `/answer`, and clue buttons are handled privately with ephemeral responses so no one can copy or leak answers.
 - 🎯 **Target Player Management (`/spy`):**
   - Add, remove, list, or clear targeted players per server (`/spy add`, `/spy remove`, `/spy list`, `/spy clear`).
@@ -159,8 +159,8 @@ The project includes a `requirements.txt` and `main.py` at the root so it can be
 | :--- | :--- | :--- |
 | **`/riddle`** | Everyone | Displays the interactive riddle card with targeted mentions and clue/answer buttons. |
 | **`/answer <réponse>`** | Everyone | Submits a riddle answer directly via Slash command (private/ephemeral). |
-| **`/riddle_set <texte> <réponse> <définition> <indicateurs> <fodder>`** | Manage Messages | Configures a new riddle, its secret answer, and its 3 breakdown clues, updating any active card live. |
-| **`/riddle_edit [définition] [indicateurs] [fodder] [texte] [réponse]`** | Manage Messages | Partially edits one or more clues, the riddle text, or the answer, and refreshes the active riddle card & buttons in real time. |
+| **`/riddle_set`** | Manage Messages | Opens an interactive modal popup to configure a new riddle, its secret answer, and its breakdown clues. |
+| **`/riddle_edit`** | Manage Messages | Opens a modal popup pre-filled with the current riddle and clues so you can easily modify any field and update the active card live. |
 | **`/spy add <@Membre>`** | Everyone | Adds a user to the riddle target list for this server. |
 | **`/spy remove <@Membre>`** | Everyone | Removes a user from the target list. |
 | **`/spy list`** | Everyone | Lists all users currently targeted by the active riddle. |
