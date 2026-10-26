@@ -120,31 +120,6 @@ class StorageService:
         await self.save_guild_data(guild_id)
         logger.info("Updated riddle for guild %s", guild_id)
 
-    async def edit_riddle(
-        self,
-        guild_id: int,
-        text: str | None = None,
-        answer: str | None = None,
-        definition: str | None = None,
-        indicators: str | None = None,
-        fodder: str | None = None,
-    ) -> dict[str, Any]:
-        """Partially updates specified fields of the riddle for the specified guild."""
-        data = await self.get_guild_data(guild_id)
-        if text is not None:
-            data["riddle_text"] = text.strip()
-        if answer is not None:
-            data["riddle_answer"] = answer.strip()
-        if definition is not None:
-            data["definition"] = definition.strip()
-        if indicators is not None:
-            data["indicators"] = indicators.strip()
-        if fodder is not None:
-            data["fodder"] = fodder.strip()
-        await self.save_guild_data(guild_id)
-        logger.info("Partially edited riddle for guild %s", guild_id)
-        return data
-
     async def set_last_riddle_message(
         self, guild_id: int, channel_id: int, message_id: int
     ) -> None:

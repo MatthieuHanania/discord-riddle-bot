@@ -13,6 +13,120 @@ if TYPE_CHECKING:
 logger = logging.getLogger("riddlebot.ui")
 
 
+class RiddleConfigModal(discord.ui.Modal):
+    """Modal popup for creating (/riddle_set) or editing (/riddle_edit) a riddle with pre-filled values."""
+
+    riddle_text_input = discord.ui.TextInput(
+        label="Énoncé de l'énigme (Riddle)",
+        placeholder="Ex: 12 - 55 + n = 9-12",
+        style=discord.TextStyle.short,
+        required=True,
+        max_length=500,
+    )
+
+    answer_input = discord.ui.TextInput(
+        label="Réponse secrète (Answer)",
+        placeholder="Le mot ou la phrase secrète qui valide l'énigme",
+        style=discord.TextStyle.short,
+        required=True,
+        max_length=120,
+    )
+
+    definition_input = discord.ui.TextInput(
+        label="Définition (Definition)",
+        placeholder="Ex: 9-12 (Optionnel)",
+        style=discord.TextStyle.short,
+        required=False,
+        max_length=300,
+    )
+
+    indicators_input = discord.ui.TextInput(
+        label="Indicateurs (Indicators)",
+        placeholder="Ex: - (deletion) and + (addition) (Optionnel)",
+        style=discord.TextStyle.short,
+        required=False,
+        max_length=300,
+    )
+
+    fodder_input = discord.ui.TextInput(
+        label="Matériau (Fodder)",
+        placeholder="Ex: '12', '55', and 'n'. (substitute) (Optionnel)",
+        style=discord.TextStyle.short,
+        required=False,
+        max_length=300,
+    )
+
+    def __init__(
+        self,
+        bot: RiddleBot,
+        guild_data: dict[str, Any] | None = None,
+        is_edit: bool = False,
+    ) -> None:
+        title = "✏️ Modifier l'énigme" if is_edit else "🧩 Nouvelle énigme"
+        super().__init__(title=title)
+        self.bot = bot
+        self.is_edit = is_edit
+
+        if guild_data:
+            self.riddle_text_input.default = str(guild_data.get("riddle_text", ""))[:500]
+            self.answer_input.default = str(guild_data.get("riddle_answer", ""))[:120]
+            self.definition_input.default = str(guild_data.get("definition", ""))[:300]
+            self.indicators_input.default = str(guild_data.get("indicators", ""))[:300]
+            self.fodder_input.default = str(guild_data.get("fodder", ""))[:300]
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        if not interaction.guild_id:
+            await interaction.response.send_message(
+                "❌ Cette action doit être effectuée au sein d'un serveur Discord.",
+                ephemeral=True,
+            )
+            return
+
+        texte = self.riddle_text_input.value.strip()
+        reponse = self.answer_input.value.strip()
+        definition = self.definition_input.value.strip()
+        indicateurs = self.indicators_input.value.strip()
+        fodder = self.fodder_input.value.strip()
+
+        await self.bot.storage.set_riddle(
+            interaction.guild_id,
+            text=texte,
+            answer=reponse,
+            definition=definition,
+            indicators=indicateurs,
+            fodder=fodder,
+        )
+
+        refreshed = False
+        riddle_cog = self.bot.get_cog("Énigme")
+        if riddle_cog and hasattr(riddle_cog, "refresh_active_message"):
+            refreshed = await riddle_cog.refresh_active_message(interaction.guild_id)
+
+        refresh_note = (
+            "\n*(La carte de l'énigme affichée et ses boutons ont été actualisés en direct !)*"
+            if refreshed
+            else ""
+        )
+
+        embed_title = "✏️ Énigme mise à jour !" if self.is_edit else "✅ Nouvelle énigme enregistrée !"
+        embed_color = discord.Color.teal() if self.is_edit else discord.Color.green()
+
+        embed = discord.Embed(
+            title=embed_title,
+            description=(
+                f"**Énoncé :**\n>>> {texte}\n\n"
+                f"🤫 **Réponse secrète :** ||`{reponse}`||\n"
+                f"📖 **Définition :** {definition or '*(Aucune)*'}\n"
+                f"🔍 **Indicateurs :** {indicateurs or '*(Aucun)*'}\n"
+                f"🧩 **Fodder :** {fodder or '*(Aucun)*'}\n"
+                f"{refresh_note}\n\n"
+                f"*(Visible uniquement par vous)*"
+            ),
+            color=embed_color,
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
 class RiddleAnswerModal(discord.ui.Modal, title="🧩 Proposer une réponse"):
     """Modal popup allowing users to privately submit their riddle guess."""
 
